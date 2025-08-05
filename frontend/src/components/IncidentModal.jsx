@@ -10,7 +10,7 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
     criticality: 'medium',
     description: '',
     image: null,
-    is_anonymous: true,
+    is_anonymous: false,
     reporter_name: '',
     reporter_phone: '',
   })

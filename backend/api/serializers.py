@@ -50,7 +50,7 @@ class IncidentSerializer(serializers.ModelSerializer):
         """
         Validate that if is_anonymous is False, reporter_name and reporter_phone are provided
         """
-        if not data.get('is_anonymous', True):
+        if not data.get('is_anonymous', False):
             if not data.get('reporter_name'):
                 raise serializers.ValidationError("Reporter name is required when not anonymous.")
             if not data.get('reporter_phone'):
