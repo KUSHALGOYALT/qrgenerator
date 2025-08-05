@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Safety Incident Notification</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .incident-details { background-color: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 20px; }
+        .field { margin-bottom: 15px; }
+        .label { font-weight: bold; color: #555; }
+        .value { color: #333; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0; color: #dc3545;">🚨 New Safety Incident Report</h2>
+            <p style="margin: 10px 0 0 0; color: #666;">Hexa Climate Safety System</p>
+        </div>
+        
+        <div class="incident-details">
+            <div class="field">
+                <span class="label">Site:</span>
+                <span class="value">{{ site.name }}</span>
+            </div>
+            
+            <div class="field">
+                <span class="label">Incident Type:</span>
+                <span class="value">{{ incident.get_incident_type_display }}</span>
+            </div>
+            
+            {% if incident.criticality %}
+            <div class="field">
+                <span class="label">Criticality Level:</span>
+                <span class="value">{{ incident.get_criticality_display }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="field">
+                <span class="label">Description:</span>
+                <div class="value" style="margin-top: 5px; padding: 10px; background-color: #f8f9fa; border-radius: 3px;">
+                    {{ incident.description }}
+                </div>
+            </div>
+            
+            <div class="field">
+                <span class="label">Reporter:</span>
+                <span class="value">{% if incident.is_anonymous %}Anonymous{% else %}{{ incident.reporter_name }}{% endif %}</span>
+            </div>
+            
+            <div class="field">
+                <span class="label">Date & Time:</span>
+                <span class="value">{{ incident.created_at|date:"F j, Y, g:i a" }}</span>
+            </div>
+            
+            {% if incident.image %}
+            <div class="field">
+                <span class="label">Image Attached:</span>
+                <span class="value">Yes</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from the Hexa Climate Safety System.</p>
+            <p>Please review this incident and take appropriate action as necessary.</p>
+        </div>
+    </div>
+</body>
+</html> 
