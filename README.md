@@ -1,14 +1,15 @@
-# Hexa Climate QR Feedback System
+# Hexa Climate HSE Portal
 
-A comprehensive safety feedback system with admin portal and public QR code access.
+A comprehensive Health, Safety, and Environment (HSE) feedback system with admin portal and public QR code access, featuring live camera capture for incident reporting.
 
 ## Features
 
 ### Admin Portal
 - **Site Management**: Create, edit, and delete sites with name and address
 - **Emergency Contacts**: Manage emergency contacts per site (name, designation, phone)
-- **Incident Viewing**: View all reported incidents across sites
+- **Incident Viewing**: View all reported incidents across sites with image support
 - **QR Code Generation**: Generate QR codes for each site's public feedback form
+- **Image Management**: View and manage incident images with full-size preview
 
 ### Public Feedback Portal
 - **Site-Specific Forms**: Each site has its own feedback form accessible via QR code
@@ -17,9 +18,17 @@ A comprehensive safety feedback system with admin portal and public QR code acce
   - Unsafe Actions
   - Near Miss
   - General Feedback
+- **Live Camera Capture**: Take photos directly using device camera
+- **Image Upload**: Support for uploading existing images from gallery
 - **Anonymous Reporting**: Option to submit anonymously or with contact details
 - **Emergency Contacts**: Display site-specific emergency contacts with click-to-call
-- **Image Upload**: Support for image attachments in reports
+
+### Camera Capture Features
+- **Live Camera Preview**: Real-time camera feed for photo capture
+- **Mobile Optimized**: Automatically uses back camera on mobile devices
+- **Error Handling**: Comprehensive error handling for camera permissions
+- **Device Support Detection**: Graceful fallback for unsupported devices
+- **Image Quality**: High-quality JPEG capture with configurable settings
 
 ## Tech Stack
 
@@ -29,19 +38,29 @@ A comprehensive safety feedback system with admin portal and public QR code acce
 - Tailwind CSS
 - React Router
 - Axios
+- MediaDevices API (camera functionality)
 
 ### Backend
 - Django 4.2
 - Django REST Framework
 - PostgreSQL
 - Pillow (image handling)
+- CORS support for media files
 
 ## Project Structure
 
 ```
 hexaclimate-qr/
 ├── frontend/          # React application
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── services/      # API services
+│   │   └── utils/         # Utility functions (camera utils)
+│   └── public/        # Static assets
 ├── backend/           # Django application
+│   ├── api/           # Django app
+│   ├── media/         # Uploaded files
+│   └── templates/     # Email templates
 └── README.md
 ```
 
@@ -51,6 +70,7 @@ hexaclimate-qr/
 - Node.js 18+
 - Python 3.9+
 - pip
+- PostgreSQL
 
 ### Installation
 
@@ -83,17 +103,31 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-2. **Setup frontend:**
+3. **Setup frontend:**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-3. **Access the applications:**
+4. **Access the applications:**
 - Admin Portal: http://localhost:3000
 - Django Admin: http://localhost:8000/admin
 - API: http://localhost:8000/api/
+
+## Camera Capture Setup
+
+The camera capture feature requires:
+
+1. **HTTPS in Production**: Camera access requires secure context (HTTPS) in production
+2. **User Permissions**: Users must grant camera permissions when prompted
+3. **Device Support**: Works on devices with camera support
+
+### Camera Features:
+- **Automatic Detection**: Detects device camera support
+- **Permission Handling**: Proper error messages for denied permissions
+- **Mobile Optimization**: Uses back camera on mobile devices
+- **Fallback Support**: File upload available when camera is not supported
 
 ## API Endpoints
 
@@ -111,11 +145,11 @@ npm run dev
 
 ### Incidents
 - `GET /api/incidents/` - List all incidents
-- `POST /api/incidents/` - Create new incident
+- `POST /api/incidents/` - Create new incident (supports image upload)
 - `GET /api/sites/{id}/incidents/` - Get incidents for specific site
 
 ### QR Codes
-- `GET /api/sites/{id}/qr-code/` - Generate QR code for site
+- `GET /api/sites/{id}/qr_code/` - Generate QR code for site
 
 ## Environment Variables
 
@@ -132,7 +166,31 @@ DB_HOST=localhost
 DB_PORT=5432
 ```
 
+## Camera Capture Usage
 
+### For Users:
+1. **Access Public Form**: Scan QR code or visit public feedback URL
+2. **Select Incident Type**: Choose the type of incident to report
+3. **Take Photo**: Click "Take Photo" to capture live image
+4. **Upload Image**: Alternatively, click "Choose File" to upload existing image
+5. **Fill Details**: Complete the incident description and submit
+
+### For Administrators:
+1. **View Incidents**: Navigate to Incidents section in admin portal
+2. **View Images**: Click on image thumbnails to see full-size images
+3. **Manage Content**: Edit, delete, or respond to incidents as needed
+
+## Troubleshooting
+
+### Camera Issues:
+- **Permission Denied**: Check browser camera permissions
+- **No Camera Found**: Ensure device has camera hardware
+- **HTTPS Required**: Use HTTPS in production for camera access
+
+### Image Display Issues:
+- **Images Not Loading**: Check media file serving configuration
+- **CORS Errors**: Verify CORS settings in Django
+- **Proxy Issues**: Ensure Vite proxy is configured for media files
 
 ## Contributing
 
@@ -140,4 +198,8 @@ DB_PORT=5432
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
+## License
+
+MIT License
 
