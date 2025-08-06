@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Phone, AlertTriangle, Shield, Eye, Send, Home } from 'lucide-react'
+import { Phone, AlertTriangle, Shield, Eye, Send } from 'lucide-react'
 import { sitesAPI, incidentsAPI } from '../services/api'
 import IncidentModal from './IncidentModal'
 import EmergencyContactsModal from './EmergencyContactsModal'
@@ -46,10 +46,6 @@ const PublicFeedback = () => {
     setSubmitted(false)
   }
 
-  const handleGoHome = () => {
-    window.location.href = '/home'
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -64,10 +60,6 @@ const PublicFeedback = () => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Site Not Found</h1>
           <p className="text-gray-600 mb-4">The requested site could not be found.</p>
-          <button onClick={handleGoHome} className="btn-primary">
-            <Home className="h-4 w-4 mr-2" />
-            Go Home
-          </button>
         </div>
       </div>
     )
@@ -90,13 +82,6 @@ const PublicFeedback = () => {
               className="btn-primary w-full flex items-center justify-center"
             >
               Submit Another Response
-            </button>
-            <button
-              onClick={handleGoHome}
-              className="btn-secondary w-full flex items-center justify-center"
-            >
-              <Home className="h-4 w-4 mr-2" />
-              Go Back to Home
             </button>
           </div>
         </div>
@@ -140,9 +125,9 @@ const PublicFeedback = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-start space-x-8 mb-6">
+          <div className="flex items-center justify-between">
             <Logo size="xxlarge" showLogoOnly={true} />
-            <div className="flex flex-col justify-center pt-2">
+            <div className="flex flex-col items-end text-right">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{site.name}</h1>
               <p className="text-gray-600">{site.address}</p>
             </div>

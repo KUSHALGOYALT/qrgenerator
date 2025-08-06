@@ -6,7 +6,6 @@ import Layout from './components/Layout'
 import EmergencyContactsManagement from './components/EmergencyContactsManagement'
 import IncidentsManagement from './components/IncidentsManagement'
 import QRCodeManagement from './components/QRCodeManagement'
-import HomePage from './components/HomePage'
 import Login from './components/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -16,7 +15,6 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <Routes>
           {/* Public routes */}
-          <Route path="/home" element={<HomePage />} />
           <Route path="/public/:siteId" element={<PublicFeedback />} />
           <Route path="/login" element={<Login />} />
           
