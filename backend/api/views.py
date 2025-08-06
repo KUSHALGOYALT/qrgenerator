@@ -81,6 +81,12 @@ class SiteViewSet(viewsets.ModelViewSet):
     queryset = Site.objects.all()
     serializer_class = SiteSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """Allow public access to retrieve and public_contacts actions"""
+        if self.action in ['retrieve', 'public_contacts']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -156,6 +162,9 @@ class SiteViewSet(viewsets.ModelViewSet):
         else:
             # Production environment - use the configured production URL
             qr_url = f"{settings.PRODUCTION_URL}/public/{site.id}/"
+        
+        # Debug: Print the generated URL
+        print(f"Generated QR URL for site {site.name} (ID: {site.id}): {qr_url}")
         
         # Create QR code
         qr = qrcode.QRCode(
@@ -237,6 +246,12 @@ class EmergencyContactViewSet(viewsets.ModelViewSet):
     queryset = EmergencyContact.objects.all()
     serializer_class = EmergencyContactSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """Allow public access to list action for emergency contacts"""
+        if self.action in ['list']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
 
 class IncidentViewSet(viewsets.ModelViewSet):
