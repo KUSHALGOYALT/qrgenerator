@@ -17,6 +17,9 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
+# Production URL for QR codes and external links
+PRODUCTION_URL = config('PRODUCTION_URL', default='http://15.207.115.171')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

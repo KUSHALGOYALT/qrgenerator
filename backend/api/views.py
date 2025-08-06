@@ -146,8 +146,16 @@ class SiteViewSet(viewsets.ModelViewSet):
     def qr_code(self, request, pk=None):
         site = self.get_object()
         
-        # Generate QR code URL
-        qr_url = f"{request.scheme}://{request.get_host()}/hex/public/{site.id}/"
+        # Generate QR code URL - use production URL for hosted environment
+        from django.conf import settings
+        
+        # Check if we're in production (not localhost)
+        if 'localhost' in request.get_host() or '127.0.0.1' in request.get_host():
+            # Development environment
+            qr_url = f"{request.scheme}://{request.get_host()}/hex/public/{site.id}/"
+        else:
+            # Production environment - use the configured production URL
+            qr_url = f"{settings.PRODUCTION_URL}/hex/public/{site.id}/"
         
         # Create QR code
         qr = qrcode.QRCode(
