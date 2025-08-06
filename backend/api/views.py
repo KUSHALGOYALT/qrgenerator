@@ -188,47 +188,88 @@ class SiteViewSet(viewsets.ModelViewSet):
         from PIL import Image, ImageDraw, ImageFont
         import os
         
-        # Create a composite image with site name header
-        # Enhanced dimensions and spacing
+        # Create a composite image with logo, site name, and description
+        # Enhanced dimensions and spacing for long site names
         qr_size = 350
-        header_height = 80
+        logo_height = 60
+        header_height = 100  # Increased for long site names
         description_height = 60
-        total_height = header_height + qr_size + description_height
+        total_height = logo_height + header_height + qr_size + description_height
         total_width = qr_size
         
         # Create the composite image
         composite = Image.new('RGB', (total_width, total_height), 'white')
         draw = ImageDraw.Draw(composite)
         
-        # Try to use larger, better fonts
+        # Try to use better fonts
         try:
-            header_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 24)
-            desc_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 18)
+            header_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 18)  # Smaller font for long names
+            desc_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 16)
         except:
             try:
-                header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
-                desc_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
+                header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
+                desc_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
             except:
                 header_font = ImageFont.load_default()
                 desc_font = ImageFont.load_default()
         
-        # Center the header text
-        header_text = f"Site: {site.name}"
+        # Add Hexa logo at the top
+        logo_text = "HEXA CLIMATE"
+        logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
+        logo_width = logo_bbox[2] - logo_bbox[0]
+        logo_x = (total_width - logo_width) // 2
+        draw.text((logo_x, 10), logo_text, fill='black', font=header_font)
+        
+        # Handle long site names by wrapping text
+        header_text = site.name
         header_bbox = draw.textbbox((0, 0), header_text, font=header_font)
         header_width = header_bbox[2] - header_bbox[0]
-        header_x = (total_width - header_width) // 2
-        draw.text((header_x, 20), header_text, fill='black', font=header_font)
+        
+        # If text is too long, wrap it
+        if header_width > total_width - 20:  # Leave 10px margin on each side
+            # Split into multiple lines
+            words = header_text.split()
+            lines = []
+            current_line = ""
+            
+            for word in words:
+                test_line = current_line + " " + word if current_line else word
+                test_bbox = draw.textbbox((0, 0), test_line, font=header_font)
+                test_width = test_bbox[2] - test_bbox[0]
+                
+                if test_width <= total_width - 20:
+                    current_line = test_line
+                else:
+                    if current_line:
+                        lines.append(current_line)
+                    current_line = word
+            
+            if current_line:
+                lines.append(current_line)
+            
+            # Draw multiple lines
+            line_height = 25
+            start_y = logo_height + 20
+            for i, line in enumerate(lines):
+                line_bbox = draw.textbbox((0, 0), line, font=header_font)
+                line_width = line_bbox[2] - line_bbox[0]
+                line_x = (total_width - line_width) // 2
+                draw.text((line_x, start_y + i * line_height), line, fill='black', font=header_font)
+        else:
+            # Single line - center it
+            header_x = (total_width - header_width) // 2
+            draw.text((header_x, logo_height + 20), header_text, fill='black', font=header_font)
         
         # Add QR code centered
         qr_image_resized = qr_image.resize((qr_size, qr_size))
-        composite.paste(qr_image_resized, (0, header_height))
+        composite.paste(qr_image_resized, (0, logo_height + header_height))
         
         # Center the description text
-        description = "Scan to report safety issues"
+        description = "Scan for Site info and Reporting Issues"
         desc_bbox = draw.textbbox((0, 0), description, font=desc_font)
         desc_width = desc_bbox[2] - desc_bbox[0]
         desc_x = (total_width - desc_width) // 2
-        draw.text((desc_x, header_height + qr_size + 15), description, fill='black', font=desc_font)
+        draw.text((desc_x, logo_height + header_height + qr_size + 15), description, fill='black', font=desc_font)
         
         # Convert composite to base64
         buffer = io.BytesIO()

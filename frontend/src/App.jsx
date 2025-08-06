@@ -5,7 +5,6 @@ import PublicFeedback from './components/PublicFeedback'
 import Layout from './components/Layout'
 import EmergencyContactsManagement from './components/EmergencyContactsManagement'
 import IncidentsManagement from './components/IncidentsManagement'
-import QRCodeManagement from './components/QRCodeManagement'
 import Login from './components/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -49,11 +48,7 @@ function App() {
               <Layout><IncidentsManagement /></Layout>
             </ProtectedRoute>
           } />
-          <Route path="/admin/qr-codes" element={
-            <ProtectedRoute>
-              <Layout><QRCodeManagement /></Layout>
-            </ProtectedRoute>
-          } />
+
         </Routes>
       </div>
     </Router>

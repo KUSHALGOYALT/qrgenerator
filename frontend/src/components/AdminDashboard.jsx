@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Settings, Mail, AlertTriangle, Building2, Eye, CheckCircle, Clock, XCircle } from 'lucide-react'
 import { sitesAPI, incidentsAPI, notificationEmailsAPI } from '../services/api'
 
 const AdminDashboard = () => {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     sites: 0,
     totalIncidents: 0,
@@ -137,7 +139,7 @@ const AdminDashboard = () => {
           </p>
           <div className="space-y-2">
             <button
-              onClick={() => window.location.href = '/admin?tab=emails'}
+              onClick={() => navigate('/admin?tab=emails')}
               className="btn-primary w-full text-center"
             >
               Manage Notification Emails
@@ -156,28 +158,28 @@ const AdminDashboard = () => {
           </p>
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => window.location.href = '/admin?tab=sites'}
+              onClick={() => navigate('/admin')}
               className="btn-secondary text-sm py-2"
             >
               Manage Sites
             </button>
             <button
-              onClick={() => window.location.href = '/admin?tab=incidents'}
+              onClick={() => navigate('/admin/incidents')}
               className="btn-secondary text-sm py-2"
             >
               View Incidents
             </button>
             <button
-              onClick={() => window.location.href = '/admin?tab=contacts'}
+              onClick={() => navigate('/admin/contacts')}
               className="btn-secondary text-sm py-2"
             >
               Emergency Contacts
             </button>
             <button
-              onClick={() => window.location.href = '/admin?tab=qr'}
+              onClick={() => navigate('/admin')}
               className="btn-secondary text-sm py-2"
             >
-              QR Codes
+              Download QR Codes
             </button>
           </div>
         </div>

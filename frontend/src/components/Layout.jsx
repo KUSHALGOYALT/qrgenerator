@@ -38,7 +38,6 @@ const Layout = ({ children }) => {
     { name: 'Sites', href: '/admin', icon: Building2 },
     { name: 'Emergency Contacts', href: '/admin/contacts', icon: Users },
     { name: 'Incidents', href: '/admin/incidents', icon: AlertTriangle },
-    { name: 'QR Codes', href: '/admin/qr-codes', icon: QrCode },
   ]
 
   return (

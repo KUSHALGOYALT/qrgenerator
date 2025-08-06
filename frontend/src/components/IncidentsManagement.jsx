@@ -79,9 +79,9 @@ const IncidentsManagement = () => {
     return labels[status] || status
   }
 
-  const handleImageClick = (imageUrl) => {
-    console.log('Image clicked:', imageUrl)
-    setSelectedImage(imageUrl)
+  const handleImageClick = (images) => {
+    console.log('Images clicked:', images)
+    setSelectedImage(images)
   }
 
   const handleStatusChange = async (incidentId, newStatus) => {
@@ -229,48 +229,23 @@ const IncidentsManagement = () => {
             <div className="mb-4">
               <p className="text-gray-700 mb-3 break-words">{incident.description}</p>
               
-              {/* Multiple Images Display */}
+              {/* Images Summary - Compressed View */}
               {incident.images && incident.images.length > 0 && (
                 <div className="mt-3">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Image className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">
-                      Attached Images ({incident.images.length}):
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
-                    {incident.images.map((image, index) => {
-                      console.log('Rendering image:', image.image_url, 'Index:', index)
-                      return (
-                        <div key={image.id || index} className="relative">
-                          <img
-                            src={image.image_url}
-                            alt={`Incident ${index + 1}`}
-                            className="w-full h-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => handleImageClick(image.image_url)}
-                            onLoad={() => {
-                              console.log('✅ Image loaded successfully:', image.image_url)
-                              console.log('Image element:', document.querySelector(`img[src="${image.image_url}"]`))
-                            }}
-                            onError={(e) => {
-                              console.error('❌ Image failed to load:', image.image_url, e)
-                              console.error('Error details:', e.target.error)
-                              e.target.style.display = 'none'
-                              e.target.nextSibling.style.display = 'flex'
-                            }}
-                            style={{ backgroundColor: 'transparent' }}
-                          />
-                          <div className="hidden w-full h-20 bg-gray-100 rounded-lg border flex items-center justify-center text-xs text-gray-500">
-                            Failed to load
-                          </div>
-                          {image.caption && (
-                            <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
-                              {image.caption}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Image className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">
+                        {incident.images.length} image{incident.images.length !== 1 ? 's' : ''} attached
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleImageClick(incident.images)}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-1"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>View Images</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -278,15 +253,6 @@ const IncidentsManagement = () => {
             
             <div className="flex justify-between items-center text-sm text-gray-500">
               <span>{new Date(incident.created_at).toLocaleDateString()}</span>
-              {incident.images && incident.images.length > 0 && (
-                <button
-                  onClick={() => handleImageClick(incident.images[0].image_url)}
-                  className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
-                >
-                  <Image className="h-3 w-3" />
-                  <span>View Images ({incident.images.length})</span>
-                </button>
-              )}
             </div>
           </div>
         ))}
@@ -310,7 +276,7 @@ const IncidentsManagement = () => {
       {/* Image Modal */}
       {selectedImage && (
         <IncidentImageModal
-          imageUrl={selectedImage}
+          images={selectedImage}
           onClose={() => setSelectedImage(null)}
         />
       )}
