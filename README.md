@@ -1,4 +1,4 @@
-# Hexa Climate HSE Portal
+# Hexa Climate 
 
 A comprehensive Health, Safety, and Environment (HSE) feedback system with admin portal and public QR code access, featuring live camera capture for incident reporting.
 
