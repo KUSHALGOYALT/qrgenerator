@@ -27,7 +27,7 @@ const QRCodeModal = ({ site, onClose }) => {
   const handleDownload = () => {
     if (qrData?.qr_code) {
       const link = document.createElement('a')
-      link.href = `data:image/png;base64,${qrData.qr_code}`
+      link.href = qrData.qr_code
       link.download = `${site.name}-qr-code.png`
       document.body.appendChild(link)
       link.click()
@@ -59,7 +59,7 @@ const QRCodeModal = ({ site, onClose }) => {
             <div className="space-y-4">
               <div className="text-center">
                 <img
-                  src={`data:image/png;base64,${qrData.qr_code}`}
+                  src={qrData.qr_code}
                   alt="QR Code"
                   className="mx-auto border border-gray-200 rounded-lg"
                 />
@@ -67,7 +67,7 @@ const QRCodeModal = ({ site, onClose }) => {
               
               <div className="text-center space-y-2">
                 <p className="text-sm text-gray-600">
-                  Public URL: <span className="font-mono text-xs break-all">{qrData.public_url}</span>
+                  Public URL: <span className="font-mono text-xs break-all">{qrData.url}</span>
                 </p>
                 <button
                   onClick={handleDownload}

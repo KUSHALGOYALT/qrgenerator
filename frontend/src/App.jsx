@@ -7,21 +7,55 @@ import EmergencyContactsManagement from './components/EmergencyContactsManagemen
 import IncidentsManagement from './components/IncidentsManagement'
 import QRCodeManagement from './components/QRCodeManagement'
 import HomePage from './components/HomePage'
+import Login from './components/Login'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
         <Routes>
-          <Route path="/" element={<Layout><AdminDashboard /></Layout>} />
+          {/* Public routes */}
           <Route path="/home" element={<HomePage />} />
-          <Route path="/admin" element={<Layout><AdminPortal /></Layout>} />
-          <Route path="/admin/dashboard" element={<Layout><AdminDashboard /></Layout>} />
-          <Route path="/admin/sites" element={<Layout><AdminPortal /></Layout>} />
-          <Route path="/admin/contacts" element={<Layout><EmergencyContactsManagement /></Layout>} />
-          <Route path="/admin/incidents" element={<Layout><IncidentsManagement /></Layout>} />
-          <Route path="/admin/qr-codes" element={<Layout><QRCodeManagement /></Layout>} />
-          <Route path="/public/:siteId" element={<PublicFeedback />} />
+          <Route path="/hex/public/:siteId" element={<PublicFeedback />} />
+          <Route path="/login" element={<Login />} />
+          
+          {/* Protected admin routes */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout><AdminDashboard /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <Layout><AdminPortal /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute>
+              <Layout><AdminDashboard /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/sites" element={
+            <ProtectedRoute>
+              <Layout><AdminPortal /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/contacts" element={
+            <ProtectedRoute>
+              <Layout><EmergencyContactsManagement /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/incidents" element={
+            <ProtectedRoute>
+              <Layout><IncidentsManagement /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/qr-codes" element={
+            <ProtectedRoute>
+              <Layout><QRCodeManagement /></Layout>
+            </ProtectedRoute>
+          } />
         </Routes>
       </div>
     </Router>

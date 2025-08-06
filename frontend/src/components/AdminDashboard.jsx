@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Settings, Mail, Users, AlertTriangle, Building2 } from 'lucide-react'
-import { sitesAPI, incidentsAPI, contactsAPI, notificationEmailsAPI } from '../services/api'
+import { Settings, Mail, AlertTriangle, Building2, Eye, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { sitesAPI, incidentsAPI, notificationEmailsAPI } from '../services/api'
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
     sites: 0,
-    incidents: 0,
-    contacts: 0,
+    totalIncidents: 0,
+    openIncidents: 0,
+    resolvedIncidents: 0,
+    closedIncidents: 0,
     emails: 0
   })
   const [loading, setLoading] = useState(true)
@@ -18,24 +20,29 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     try {
       setLoading(true)
-      const [sitesRes, incidentsRes, contactsRes, emailsRes] = await Promise.all([
+      const [sitesRes, incidentsRes, emailsRes] = await Promise.all([
         sitesAPI.getAll(),
         incidentsAPI.getAll(),
-        contactsAPI.getAll(),
         notificationEmailsAPI.getAll()
       ])
       
       const sites = sitesRes.data.results || sitesRes.data
       const incidents = incidentsRes.data.results || incidentsRes.data
-      const contacts = contactsRes.data.results || contactsRes.data
       const emails = emailsRes.data.results || emailsRes.data
       
-                    setStats({
-                sites: sites.length,
-                incidents: incidents.length,
-                contacts: contacts.length,
-                emails: emails.length
-              })
+      // Calculate incident statistics
+      const openIncidents = incidents.filter(incident => incident.status === 'open').length
+      const resolvedIncidents = incidents.filter(incident => incident.status === 'resolved').length
+      const closedIncidents = incidents.filter(incident => incident.status === 'closed').length
+      
+      setStats({
+        sites: sites.length,
+        totalIncidents: incidents.length,
+        openIncidents,
+        resolvedIncidents,
+        closedIncidents,
+        emails: emails.length
+      })
     } catch (error) {
       console.error('Error fetching stats:', error)
     } finally {
@@ -64,7 +71,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="card">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-blue-100 text-blue-600">
@@ -79,12 +86,24 @@ const AdminDashboard = () => {
 
         <div className="card">
           <div className="flex items-center">
-            <div className="p-3 rounded-full bg-red-100 text-red-600">
+            <div className="p-3 rounded-full bg-orange-100 text-orange-600">
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Incidents</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.incidents}</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.totalIncidents}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-yellow-100 text-yellow-600">
+              <Clock className="h-6 w-6" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Open Incidents</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.openIncidents}</p>
             </div>
           </div>
         </div>
@@ -92,18 +111,18 @@ const AdminDashboard = () => {
         <div className="card">
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-100 text-green-600">
-              <Users className="h-6 w-6" />
+              <CheckCircle className="h-6 w-6" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Emergency Contacts</p>
-              <p className="text-2xl font-semibold text-gray-900">{stats.contacts}</p>
+              <p className="text-sm font-medium text-gray-600">Resolved</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.resolvedIncidents}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Admin Actions */}
-      <div className="grid grid-cols-1 gap-6">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Notification Email Management */}
         <div className="card">
           <div className="flex items-center mb-4">
@@ -123,13 +142,74 @@ const AdminDashboard = () => {
             >
               Manage Notification Emails
             </button>
-            <p className="text-xs text-gray-500 text-center">
-              Opens frontend email management interface
-            </p>
+          </div>
+        </div>
+
+        {/* Quick Access */}
+        <div className="card">
+          <div className="flex items-center mb-4">
+            <Settings className="h-5 w-5 text-gray-500 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Quick Access</h3>
+          </div>
+          <p className="text-gray-600 mb-4">
+            Access key management features for your safety system.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => window.location.href = '/admin?tab=sites'}
+              className="btn-secondary text-sm py-2"
+            >
+              Manage Sites
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin?tab=incidents'}
+              className="btn-secondary text-sm py-2"
+            >
+              View Incidents
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin?tab=contacts'}
+              className="btn-secondary text-sm py-2"
+            >
+              Emergency Contacts
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin?tab=qr'}
+              className="btn-secondary text-sm py-2"
+            >
+              QR Codes
+            </button>
           </div>
         </div>
       </div>
 
+      {/* Incident Status Summary */}
+      {stats.totalIncidents > 0 && (
+        <div className="card">
+          <div className="flex items-center mb-4">
+            <Eye className="h-5 w-5 text-gray-500 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Incident Status Summary</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-yellow-50 rounded-lg">
+              <div className="text-2xl font-bold text-yellow-600">{stats.openIncidents}</div>
+              <div className="text-sm text-yellow-700">Open</div>
+            </div>
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{stats.totalIncidents - stats.openIncidents - stats.resolvedIncidents - stats.closedIncidents}</div>
+              <div className="text-sm text-blue-700">In Progress</div>
+            </div>
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{stats.resolvedIncidents}</div>
+              <div className="text-sm text-green-700">Resolved</div>
+            </div>
+            <div className="text-center p-3 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-600">{stats.closedIncidents}</div>
+              <div className="text-sm text-gray-700">Closed</div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

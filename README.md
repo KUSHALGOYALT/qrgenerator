@@ -111,9 +111,47 @@ npm run dev
 ```
 
 4. **Access the applications:**
-- Admin Portal: http://localhost:3000
+- Admin Portal: http://localhost:3000 (requires authentication)
+- Public Feedback: http://localhost:3000/public/{site-id} (public access)
 - Django Admin: http://localhost:8000/admin
 - API: http://localhost:8000/api/
+
+### Authentication
+
+The admin portal is now protected with authentication:
+
+- **Username:** `admin`
+- **Password:** `hexaclimate2024`
+
+**Public Access:**
+- Only the public feedback form (accessed via QR code) is publicly accessible
+- All admin pages require authentication
+- Users are redirected to login page when accessing protected routes
+
+### Email Notifications
+
+The system includes robust email notification handling:
+
+**Features:**
+- **Graceful Failure**: Email errors won't break the main application
+- **Automatic Notifications**: Incident reports trigger email notifications
+- **Configurable Recipients**: Manage notification emails via admin interface
+- **Development Mode**: Uses console backend for development (emails printed to console)
+
+**Testing Email Functionality:**
+```bash
+# Test SMTP connection (if configured)
+python manage.py test_email --test-smtp
+
+# Test notification emails
+python manage.py test_email --test-notification
+```
+
+**Email Configuration:**
+- Currently uses console backend for development
+- SMTP configuration can be added later without breaking the app
+- Email timeouts prevent hanging
+- All email operations are wrapped in try-catch blocks
 
 ## Camera Capture Setup
 

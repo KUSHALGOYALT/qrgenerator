@@ -8,11 +8,12 @@ from django.conf.urls.static import static
 from api.views import public_site_view
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('api.urls')),
-    path('public/<str:site_id>/', public_site_view, name='public_site'),
+    path('hex/admin/', admin.site.urls),
+    path('hex/api/', include('api.urls')),
+    path('hex/public/<str:site_id>/', public_site_view, name='public_site'),
 ]
 
 # Serve media files in development
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static('/hex/static/', document_root=settings.STATIC_ROOT) 

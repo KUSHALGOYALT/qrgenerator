@@ -1,13 +1,50 @@
 import axios from 'axios'
 
-const API_BASE_URL = '/api'
+const API_BASE_URL = '/hex/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for session cookies
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
 })
+
+// Add request interceptor to include auth headers
+api.interceptors.request.use(
+  (config) => {
+    // Get CSRF token from cookies for authenticated requests
+    const csrfToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('csrftoken='))
+      ?.split('=')[1];
+    
+    if (csrfToken) {
+      config.headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Add response interceptor to handle auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Redirect to login if unauthorized
+      localStorage.removeItem('isAuthenticated')
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
 
 // Sites API
 export const sitesAPI = {
@@ -17,6 +54,7 @@ export const sitesAPI = {
   update: (id, data) => api.put(`/sites/${id}/`, data),
   delete: (id) => api.delete(`/sites/${id}/`),
   getContacts: (id) => api.get(`/sites/${id}/contacts/`),
+  getPublicContacts: (id) => api.get(`/sites/${id}/public_contacts/`),
   getIncidents: (id) => api.get(`/sites/${id}/incidents/`),
   getQRCode: (id) => api.get(`/sites/${id}/qr_code/`),
 }
@@ -68,6 +106,13 @@ export const notificationEmailsAPI = {
   create: (data) => api.post('/notification-emails/', data),
   update: (id, data) => api.put(`/notification-emails/${id}/`, data),
   delete: (id) => api.delete(`/notification-emails/${id}/`),
+}
+
+// Auth API
+export const authAPI = {
+  login: (credentials) => api.post('/auth/login/', credentials),
+  logout: () => api.post('/auth/logout/'),
+  checkAuth: () => api.get('/auth/check_auth/'),
 }
 
 export default api 

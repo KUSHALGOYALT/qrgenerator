@@ -30,7 +30,7 @@ class IncidentImageSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         """Return relative URL for image to work with frontend proxy"""
         if obj.image:
-            return f'/media/{obj.image}'
+            return f'/hex/media/{obj.image}'
         return None
 
 

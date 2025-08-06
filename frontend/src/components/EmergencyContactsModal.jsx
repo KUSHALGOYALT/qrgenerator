@@ -17,9 +17,8 @@ const EmergencyContactsModal = ({ site, onClose }) => {
   const fetchContacts = async () => {
     try {
       setLoading(true)
-      console.log('Fetching contacts for site:', site.id)
-      const response = await sitesAPI.getContacts(site.id)
-      console.log('Contacts response:', response.data)
+      console.log('Fetching public contacts for site:', site.id)
+      const response = await sitesAPI.getPublicContacts(site.id)
       setContacts(response.data)
     } catch (error) {
       console.error('Error fetching contacts:', error)
@@ -72,7 +71,7 @@ const EmergencyContactsModal = ({ site, onClose }) => {
                 </h4>
                 <div className="space-y-2">
                   {contacts.filter(contact => 
-                    ['100', '102', '101', '1098'].includes(contact.phone_number)
+                    contact.site_name === 'National Emergency'
                   ).map((contact) => (
                     <div
                       key={contact.id}
@@ -105,7 +104,7 @@ const EmergencyContactsModal = ({ site, onClose }) => {
 
               {/* Site-Specific Contacts */}
               {contacts.filter(contact => 
-                !['100', '102', '101', '1098'].includes(contact.phone_number)
+                contact.site_name !== 'National Emergency'
               ).length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
@@ -114,7 +113,7 @@ const EmergencyContactsModal = ({ site, onClose }) => {
                   </h4>
                   <div className="space-y-2">
                     {contacts.filter(contact => 
-                      !['100', '102', '101', '1098'].includes(contact.phone_number)
+                      contact.site_name !== 'National Emergency'
                     ).map((contact) => (
                       <div
                         key={contact.id}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { 
   Building2, 
   Users, 
@@ -7,13 +7,31 @@ import {
   QrCode, 
   Menu, 
   X,
-  LayoutDashboard
+  LayoutDashboard,
+  LogOut,
+  User
 } from 'lucide-react'
 import Logo from './Logo'
+import { authAPI } from '../services/api'
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      localStorage.removeItem('isAuthenticated')
+      localStorage.removeItem('user')
+      navigate('/login')
+    }
+  }
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   const navigation = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -106,6 +124,19 @@ const Layout = ({ children }) => {
           </button>
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1"></div>
+            <div className="flex items-center gap-x-4">
+              <div className="flex items-center gap-x-2 text-sm text-gray-700">
+                <User className="h-4 w-4" />
+                <span>{user.username || 'Admin'}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-x-2 text-sm text-gray-700 hover:text-gray-900"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
 

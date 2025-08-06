@@ -138,7 +138,12 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
         delete submitData.criticality
       }
       
-      await incidentsAPI.create(submitData)
+      const response = await incidentsAPI.create(submitData)
+      
+      // Log success - email notifications are handled server-side
+      console.log('Incident submitted successfully')
+      console.log('Note: Email notifications are sent automatically if configured')
+      
       onSubmitted()
     } catch (error) {
       console.error('Error submitting incident:', error)

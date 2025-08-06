@@ -100,7 +100,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Media files
-MEDIA_URL = '/media/'
+MEDIA_URL = '/hex/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
@@ -111,6 +111,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
@@ -118,13 +121,23 @@ REST_FRAMEWORK = {
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://localhost:3001",  # In case port 3000 is busy
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 # Allow media files to be accessed from frontend
 CORS_ALLOW_ALL_ORIGINS = True  # For development only
+
+# CSRF settings for frontend
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
@@ -149,11 +162,11 @@ CORS_ALLOW_HEADERS = [
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB 
 
-# Email Configuration
+# Email Configuration - Robust setup that won't break the application
 # For development: Use console backend to print emails to console
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# For production: Use SMTP backend (uncomment and configure)
+# For production: Use SMTP backend (uncomment and configure when ready)
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # EMAIL_HOST = 'smtp.gmail.com'
 # EMAIL_PORT = 587
@@ -161,7 +174,13 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # EMAIL_HOST_USER = 'your-email@gmail.com'  # Replace with your email
 # EMAIL_HOST_PASSWORD = 'your-app-password'  # Replace with your app password
 
-# Incident notification emails
+# Default from email (used when SMTP is not configured)
+DEFAULT_FROM_EMAIL = 'safety@hexaclimate.com'
+
+# Email timeout settings to prevent hanging
+EMAIL_TIMEOUT = 10  # 10 seconds timeout
+
+# Incident notification emails (fallback list - now managed in database)
 INCIDENT_NOTIFICATION_EMAILS = [
     'nirbhay.dwivedi@hex',
     'Anil.choudhary@hex',

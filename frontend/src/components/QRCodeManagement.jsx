@@ -43,7 +43,7 @@ const QRCodeManagement = () => {
     const qrDataForSite = qrData[siteId]
     if (qrDataForSite?.qr_code) {
       const link = document.createElement('a')
-      link.href = `data:image/png;base64,${qrDataForSite.qr_code}`
+      link.href = qrDataForSite.qr_code
       link.download = `${siteName}-qr-code.png`
       document.body.appendChild(link)
       link.click()
@@ -84,7 +84,7 @@ const QRCodeManagement = () => {
                   <div className="space-y-4">
                     <div className="flex justify-center">
                       <img
-                        src={`data:image/png;base64,${siteQrData.qr_code}`}
+                        src={siteQrData.qr_code}
                         alt={`QR Code for ${site.name}`}
                         className="border border-gray-200 rounded-lg max-w-full h-48 object-contain"
                       />
@@ -92,7 +92,7 @@ const QRCodeManagement = () => {
                     
                     <div className="space-y-2">
                       <p className="text-xs text-gray-500 break-all">
-                        {siteQrData.public_url}
+                        {siteQrData.url}
                       </p>
                       
                       <div className="flex justify-center space-x-2">
@@ -105,7 +105,7 @@ const QRCodeManagement = () => {
                         </button>
                         
                         <a
-                          href={siteQrData.public_url}
+                          href={siteQrData.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn-secondary flex items-center gap-1 text-sm"

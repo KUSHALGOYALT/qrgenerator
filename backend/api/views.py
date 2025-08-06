@@ -1,11 +1,13 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 import qrcode
 import io
 import base64
@@ -19,10 +21,66 @@ from .serializers import (
 from .utils import send_incident_notification
 
 
+class AuthViewSet(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response(
+                {'error': 'Username and password are required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user = authenticate(username=username, password=password)
+        
+        if user is not None:
+            login(request, user)
+            return Response({
+                'message': 'Login successful',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
+                }
+            })
+        else:
+            return Response(
+                {'error': 'Invalid credentials'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+        logout(request)
+        return Response({'message': 'Logout successful'})
+
+    @action(detail=False, methods=['get'])
+    def check_auth(self, request):
+        if request.user.is_authenticated:
+            return Response({
+                'authenticated': True,
+                'user': {
+                    'id': request.user.id,
+                    'username': request.user.username,
+                    'email': request.user.email,
+                    'first_name': request.user.first_name,
+                    'last_name': request.user.last_name
+                }
+            })
+        else:
+            return Response({'authenticated': False})
+
+
 class SiteViewSet(viewsets.ModelViewSet):
     queryset = Site.objects.all()
     serializer_class = SiteSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -31,223 +89,186 @@ class SiteViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def contacts(self, request, pk=None):
-        """Get emergency contacts for a specific site"""
         site = self.get_object()
-        contacts = list(site.emergency_contacts.all())
         
-        # Add only 4 essential national helpline numbers for every site
+        # Get site-specific contacts only
+        site_contacts = EmergencyContact.objects.filter(site=site)
+        site_contacts_data = EmergencyContactSerializer(site_contacts, many=True).data
+        
+        return Response(site_contacts_data)
+
+    @action(detail=True, methods=['get'])
+    def public_contacts(self, request, pk=None):
+        site = self.get_object()
+        
+        # Get site-specific contacts
+        site_contacts = EmergencyContact.objects.filter(site=site)
+        site_contacts_data = EmergencyContactSerializer(site_contacts, many=True).data
+        
+        # Add national emergency contacts for public view
         national_contacts = [
             {
                 'id': 'national-police',
-                'site': site.id,
-                'site_name': 'National Emergency',
                 'name': 'Police',
-                'designation': 'National Emergency',
+                'designation': 'Emergency',
                 'phone_number': '100',
-                'created_at': None,
-                'updated_at': None
+                'site_name': 'National Emergency'
             },
             {
                 'id': 'national-ambulance',
-                'site': site.id,
-                'site_name': 'National Emergency',
                 'name': 'Ambulance',
-                'designation': 'Medical Emergency',
+                'designation': 'Emergency',
                 'phone_number': '102',
-                'created_at': None,
-                'updated_at': None
+                'site_name': 'National Emergency'
             },
             {
                 'id': 'national-fire',
-                'site': site.id,
-                'site_name': 'National Emergency',
                 'name': 'Fire Brigade',
-                'designation': 'Fire Emergency',
+                'designation': 'Emergency',
                 'phone_number': '101',
-                'created_at': None,
-                'updated_at': None
+                'site_name': 'National Emergency'
             },
             {
                 'id': 'national-child',
-                'site': site.id,
-                'site_name': 'National Emergency',
                 'name': 'Child Helpline',
-                'designation': 'Child Protection',
+                'designation': 'Emergency',
                 'phone_number': '1098',
-                'created_at': None,
-                'updated_at': None
-            },
+                'site_name': 'National Emergency'
+            }
         ]
         
-        # Serialize the actual EmergencyContact model instances
-        contacts_serializer = EmergencyContactSerializer(contacts, many=True)
-        contacts_data = contacts_serializer.data
+        # Combine site contacts and national contacts
+        all_contacts = site_contacts_data + national_contacts
         
-        # Combine national contacts with serialized site-specific contacts
-        all_contacts = national_contacts + contacts_data
         return Response(all_contacts)
 
     @action(detail=True, methods=['get'])
-    def incidents(self, request, pk=None):
-        """Get incidents for a specific site"""
-        site = self.get_object()
-        incidents = site.incidents.all()
-        serializer = IncidentSerializer(incidents, many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
     def qr_code(self, request, pk=None):
-        """Generate QR code for a specific site"""
         site = self.get_object()
         
-        # Generate the public URL for this site
-        # In production, this would be your actual domain
-        base_url = request.build_absolute_uri('/').rstrip('/')
-        public_url = f"{base_url}/public/{site.id}/"
+        # Generate QR code URL
+        qr_url = f"{request.scheme}://{request.get_host()}/hex/public/{site.id}/"
         
         # Create QR code
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(public_url)
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_url)
         qr.make(fit=True)
         
         # Create QR code image
-        qr_img = qr.make_image(fill_color="black", back_color="white")
-        
-        # Create a composite image with header, QR code, and description
-        from PIL import Image, ImageDraw, ImageFont
-        
-        # Calculate dimensions
-        qr_width, qr_height = qr_img.size
-        header_height = 60
-        description_height = 40
-        padding = 20
-        
-        # Create the main image
-        total_width = qr_width + 2 * padding
-        total_height = header_height + qr_height + description_height + 3 * padding
-        composite_img = Image.new('RGB', (total_width, total_height), 'white')
-        
-        # Add header with site name
-        draw = ImageDraw.Draw(composite_img)
-        
-        # Try different font paths for cross-platform compatibility
-        font_large = None
-        font_small = None
-        
-        font_paths = [
-            "/System/Library/Fonts/Arial.ttf",  # macOS
-            "/System/Library/Fonts/Helvetica.ttc",  # macOS alternative
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
-            "C:/Windows/Fonts/arial.ttf",  # Windows
-        ]
-        
-        for font_path in font_paths:
-            try:
-                font_large = ImageFont.truetype(font_path, 24)
-                font_small = ImageFont.truetype(font_path, 16)
-                break
-            except:
-                continue
-        
-        # Fallback to default font if no system fonts found
-        if font_large is None:
-            font_large = ImageFont.load_default()
-            font_small = ImageFont.load_default()
-        
-        # Draw header
-        header_text = f"Site: {site.name}"
-        header_bbox = draw.textbbox((0, 0), header_text, font=font_large)
-        header_width = header_bbox[2] - header_bbox[0]
-        header_x = (total_width - header_width) // 2
-        draw.text((header_x, padding), header_text, fill='black', font=font_large)
-        
-        # Add QR code
-        qr_x = (total_width - qr_width) // 2
-        qr_y = header_height + padding
-        composite_img.paste(qr_img, (qr_x, qr_y))
-        
-        # Add description
-        description_text = "Scan to access safety feedback form"
-        desc_bbox = draw.textbbox((0, 0), description_text, font=font_small)
-        desc_width = desc_bbox[2] - desc_bbox[0]
-        desc_x = (total_width - desc_width) // 2
-        desc_y = qr_y + qr_height + padding
-        draw.text((desc_x, desc_y), description_text, fill='black', font=font_small)
+        qr_image = qr.make_image(fill_color="black", back_color="white")
         
         # Convert to base64
         buffer = io.BytesIO()
-        composite_img.save(buffer, format='PNG')
-        img_str = base64.b64encode(buffer.getvalue()).decode()
+        qr_image.save(buffer, format='PNG')
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        # Create composite image with header
+        from PIL import Image, ImageDraw, ImageFont
+        import os
+        
+        # Create a composite image with site name header
+        # Enhanced dimensions and spacing
+        qr_size = 350
+        header_height = 80
+        description_height = 60
+        total_height = header_height + qr_size + description_height
+        total_width = qr_size
+        
+        # Create the composite image
+        composite = Image.new('RGB', (total_width, total_height), 'white')
+        draw = ImageDraw.Draw(composite)
+        
+        # Try to use larger, better fonts
+        try:
+            header_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 24)
+            desc_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 18)
+        except:
+            try:
+                header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+                desc_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
+            except:
+                header_font = ImageFont.load_default()
+                desc_font = ImageFont.load_default()
+        
+        # Center the header text
+        header_text = f"Site: {site.name}"
+        header_bbox = draw.textbbox((0, 0), header_text, font=header_font)
+        header_width = header_bbox[2] - header_bbox[0]
+        header_x = (total_width - header_width) // 2
+        draw.text((header_x, 20), header_text, fill='black', font=header_font)
+        
+        # Add QR code centered
+        qr_image_resized = qr_image.resize((qr_size, qr_size))
+        composite.paste(qr_image_resized, (0, header_height))
+        
+        # Center the description text
+        description = "Scan to report safety issues"
+        desc_bbox = draw.textbbox((0, 0), description, font=desc_font)
+        desc_width = desc_bbox[2] - desc_bbox[0]
+        desc_x = (total_width - desc_width) // 2
+        draw.text((desc_x, header_height + qr_size + 15), description, fill='black', font=desc_font)
+        
+        # Convert composite to base64
+        buffer = io.BytesIO()
+        composite.save(buffer, format='PNG')
+        composite_base64 = base64.b64encode(buffer.getvalue()).decode()
         
         return Response({
-            'qr_code': img_str,
-            'public_url': public_url,
-            'site_name': site.name,
-            'description': 'Scan to access safety feedback form'
+            'qr_code': f"data:image/png;base64,{composite_base64}",
+            'url': qr_url,
+            'site_name': site.name
         })
 
 
 class EmergencyContactViewSet(viewsets.ModelViewSet):
     queryset = EmergencyContact.objects.all()
     serializer_class = EmergencyContactSerializer
-    permission_classes = [AllowAny]
-
-    def get_queryset(self):
-        queryset = EmergencyContact.objects.all()
-        site_id = self.request.query_params.get('site', None)
-        if site_id is not None:
-            queryset = queryset.filter(site_id=site_id)
-        return queryset
+    permission_classes = [IsAuthenticated]
 
 
 class IncidentViewSet(viewsets.ModelViewSet):
     queryset = Incident.objects.all()
     serializer_class = IncidentSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # Allow public submission
 
     def get_queryset(self):
-        queryset = Incident.objects.all()
-        site_id = self.request.query_params.get('site', None)
-        incident_type = self.request.query_params.get('type', None)
+        queryset = Incident.objects.all().order_by('-created_at')
         
-        if site_id is not None:
+        # Filter by site if provided
+        site_id = self.request.query_params.get('site', None)
+        if site_id:
             queryset = queryset.filter(site_id=site_id)
-        if incident_type is not None:
-            queryset = queryset.filter(incident_type=incident_type)
-            
+        
         return queryset
 
     def create(self, request, *args, **kwargs):
-        """Override create to handle multiple file uploads and send email notifications"""
-        # Extract images from request data
-        images = request.FILES.getlist('images') if 'images' in request.FILES else []
+        # Handle image uploads
+        images = request.FILES.getlist('images')
         
-        # Remove images from data to avoid serializer issues
-        data = request.data.copy()
-        if 'images' in data:
-            del data['images']
-        
-        serializer = self.get_serializer(data=data)
+        # Create the incident
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         incident = serializer.save()
         
-        # Create IncidentImage objects for each uploaded image
-        for image_file in images:
-            IncidentImage.objects.create(
-                incident=incident,
-                image=image_file
-            )
+        # Handle image uploads
+        for image in images:
+            IncidentImage.objects.create(incident=incident, image=image)
         
-        # Send email notification
-        try:
-            send_incident_notification(incident)
-        except Exception as e:
-            print(f"Failed to send email notification: {e}")
+        # Send notification email - this will not break the application if it fails
+        email_sent = send_incident_notification(incident)
         
-        # Return the incident with images
-        response_serializer = self.get_serializer(incident)
-        headers = self.get_success_headers(response_serializer.data)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # Log the result but don't let email failures affect the response
+        if email_sent:
+            print(f"Email notification sent for incident {incident.id}")
+        else:
+            print(f"Email notification failed for incident {incident.id} - but incident was saved successfully")
+        
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         """Override update to handle partial updates properly"""
@@ -279,7 +300,7 @@ class IncidentViewSet(viewsets.ModelViewSet):
 class NotificationEmailViewSet(viewsets.ModelViewSet):
     queryset = NotificationEmail.objects.all()
     serializer_class = NotificationEmailSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -294,9 +315,9 @@ def public_site_view(request, site_id):
             <title>{site.name} - Safety Feedback</title>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <script>
-                window.location.href = 'http://localhost:3000/public/{site_id}/';
-            </script>
+                               <script>
+                       window.location.href = 'http://localhost:3000/hex/public/{site_id}/';
+                   </script>
         </head>
         <body>
             <p>Redirecting to feedback form...</p>
