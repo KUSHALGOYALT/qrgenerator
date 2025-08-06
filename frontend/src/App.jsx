@@ -17,7 +17,7 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/home" element={<HomePage />} />
-          <Route path="/hex/public/:siteId" element={<PublicFeedback />} />
+          <Route path="/public/:siteId" element={<PublicFeedback />} />
           <Route path="/login" element={<Login />} />
           
           {/* Protected admin routes */}

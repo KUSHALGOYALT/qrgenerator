@@ -111,10 +111,10 @@ npm run dev
 ```
 
 4. **Access the applications:**
-- Admin Portal: http://localhost:3000 (requires authentication)
-- Public Feedback: http://localhost:3000/public/{site-id} (public access)
-- Django Admin: http://localhost:8000/admin
-- API: http://localhost:8000/api/
+- Admin Portal: https://hse.hexaclimate.com (requires authentication)
+- Public Feedback: https://hse.hexaclimate.com/public/{site-id} (public access)
+- Django Admin: https://hse.hexaclimate.com/hex/admin/
+- API: https://hse.hexaclimate.com/hex/api/
 
 ### Authentication
 

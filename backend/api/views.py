@@ -152,10 +152,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         # Check if we're in production (not localhost)
         if 'localhost' in request.get_host() or '127.0.0.1' in request.get_host():
             # Development environment
-            qr_url = f"{request.scheme}://{request.get_host()}/hex/public/{site.id}/"
+            qr_url = f"{request.scheme}://{request.get_host()}/public/{site.id}/"
         else:
             # Production environment - use the configured production URL
-            qr_url = f"{settings.PRODUCTION_URL}/hex/public/{site.id}/"
+            qr_url = f"{settings.PRODUCTION_URL}/public/{site.id}/"
         
         # Create QR code
         qr = qrcode.QRCode(
@@ -324,7 +324,7 @@ def public_site_view(request, site_id):
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
                                <script>
-                       window.location.href = 'http://localhost:3000/hex/public/{site_id}/';
+                       window.location.href = 'https://hse.hexaclimate.com/public/{site_id}/';
                    </script>
         </head>
         <body>

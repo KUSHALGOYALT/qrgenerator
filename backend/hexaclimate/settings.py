@@ -18,7 +18,7 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 # Production URL for QR codes and external links
-PRODUCTION_URL = config('PRODUCTION_URL', default='http://15.207.115.171')
+PRODUCTION_URL = config('PRODUCTION_URL', default='https://hse.hexaclimate.com')
 
 # Application definition
 INSTALLED_APPS = [
@@ -123,23 +123,14 @@ REST_FRAMEWORK = {
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:3001",  # In case port 3000 is busy
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
+    "https://hse.hexaclimate.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow media files to be accessed from frontend
-CORS_ALLOW_ALL_ORIGINS = True  # For development only
-
 # CSRF settings for frontend
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
+    "https://hse.hexaclimate.com",
 ]
 CORS_ALLOW_METHODS = [
     'DELETE',
