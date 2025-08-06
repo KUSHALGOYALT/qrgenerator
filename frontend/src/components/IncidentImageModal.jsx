@@ -19,6 +19,7 @@ const IncidentImageModal = ({ imageUrl, onClose }) => {
             alt="Incident"
             className="max-w-full max-h-[70vh] object-contain mx-auto"
             onError={(e) => {
+              console.error('Image failed to load in modal:', imageUrl)
               e.target.style.display = 'none'
               e.target.nextSibling.style.display = 'block'
             }}

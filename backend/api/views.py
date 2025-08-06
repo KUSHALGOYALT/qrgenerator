@@ -10,13 +10,13 @@ import qrcode
 import io
 import base64
 
-from .models import Site, EmergencyContact, Incident
+from .models import Site, EmergencyContact, Incident, IncidentImage, NotificationEmail
 from .serializers import (
     SiteSerializer, SiteDetailSerializer,
     EmergencyContactSerializer,
-    IncidentSerializer
+    IncidentSerializer, NotificationEmailSerializer
 )
-from .utils import send_incident_notification_simple
+from .utils import send_incident_notification
 
 
 class SiteViewSet(viewsets.ModelViewSet):
@@ -218,19 +218,68 @@ class IncidentViewSet(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
-        """Override create to handle file uploads properly and send email notifications"""
-        serializer = self.get_serializer(data=request.data)
+        """Override create to handle multiple file uploads and send email notifications"""
+        # Extract images from request data
+        images = request.FILES.getlist('images') if 'images' in request.FILES else []
+        
+        # Remove images from data to avoid serializer issues
+        data = request.data.copy()
+        if 'images' in data:
+            del data['images']
+        
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         incident = serializer.save()
         
+        # Create IncidentImage objects for each uploaded image
+        for image_file in images:
+            IncidentImage.objects.create(
+                incident=incident,
+                image=image_file
+            )
+        
         # Send email notification
         try:
-            send_incident_notification_simple(incident)
+            send_incident_notification(incident)
         except Exception as e:
             print(f"Failed to send email notification: {e}")
         
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        # Return the incident with images
+        response_serializer = self.get_serializer(incident)
+        headers = self.get_success_headers(response_serializer.data)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        """Override update to handle partial updates properly"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        
+        # Debug logging
+        print(f"Update request data: {request.data}")
+        print(f"Partial update: {partial}")
+        
+        serializer.is_valid(raise_exception=True)
+        
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Handle PATCH requests for partial updates"""
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
+
+
+class NotificationEmailViewSet(viewsets.ModelViewSet):
+    queryset = NotificationEmail.objects.all()
+    serializer_class = NotificationEmailSerializer
+    permission_classes = [AllowAny]
 
 
 @method_decorator(csrf_exempt, name='dispatch')

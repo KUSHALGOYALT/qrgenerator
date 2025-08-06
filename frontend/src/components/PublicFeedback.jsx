@@ -87,13 +87,13 @@ const PublicFeedback = () => {
           <div className="space-y-3">
             <button
               onClick={handleNewSubmission}
-              className="btn-primary w-full"
+              className="btn-primary w-full flex items-center justify-center"
             >
               Submit Another Response
             </button>
             <button
               onClick={handleGoHome}
-              className="btn-secondary w-full"
+              className="btn-secondary w-full flex items-center justify-center"
             >
               <Home className="h-4 w-4 mr-2" />
               Go Back to Home

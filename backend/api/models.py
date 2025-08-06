@@ -4,7 +4,7 @@ import uuid
 
 
 class Site(models.Model):
-    """Model for managing sites"""
+    """Model for sites/locations"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200)
     address = models.TextField()
@@ -16,6 +16,19 @@ class Site(models.Model):
 
     class Meta:
         ordering = ['name']
+
+
+class NotificationEmail(models.Model):
+    """Simple model for notification emails"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email
+
+    class Meta:
+        ordering = ['email']
 
 
 class EmergencyContact(models.Model):
@@ -39,6 +52,21 @@ class EmergencyContact(models.Model):
         ordering = ['name']
 
 
+class IncidentImage(models.Model):
+    """Model for incident images"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    incident = models.ForeignKey('Incident', on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='incident_images/')
+    caption = models.CharField(max_length=200, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.incident}"
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class Incident(models.Model):
     """Model for incident reports"""
     INCIDENT_TYPES = [
@@ -55,15 +83,22 @@ class Incident(models.Model):
         ('critical', 'Critical'),
     ]
 
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='incidents')
     incident_type = models.CharField(max_length=20, choices=INCIDENT_TYPES)
     criticality = models.CharField(max_length=10, choices=CRITICALITY_LEVELS, blank=True, null=True)
-    description = models.TextField()
-    image = models.ImageField(upload_to='incident_images/', blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    description = models.TextField(max_length=2000)
     
     # Anonymous reporting fields
-    is_anonymous = models.BooleanField(default=True)
+    is_anonymous = models.BooleanField(default=False)
     reporter_name = models.CharField(max_length=100, blank=True, null=True)
     reporter_phone = models.CharField(max_length=17, blank=True, null=True)
     
@@ -78,6 +113,11 @@ class Incident(models.Model):
 
     def __str__(self):
         return f"{self.get_incident_type_display()} - {self.site.name} ({self.created_at.strftime('%Y-%m-%d')})"
+
+    @property
+    def image_count(self):
+        """Return the number of images for this incident"""
+        return self.images.count()
 
     class Meta:
         ordering = ['-created_at'] 

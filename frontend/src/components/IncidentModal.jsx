@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Upload, User, Phone, Camera } from 'lucide-react'
+import { X, Upload, User, Phone, Camera, Trash2 } from 'lucide-react'
 import { incidentsAPI } from '../services/api'
 import CameraCapture from './CameraCapture'
 import { isCameraSupported } from '../utils/cameraUtils'
@@ -9,14 +9,14 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
     incident_type: incidentType,
     criticality: 'medium',
     description: '',
-    image: null,
+    images: [],
     is_anonymous: false,
     reporter_name: '',
     reporter_phone: '',
   })
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
-  const [imagePreview, setImagePreview] = useState(null)
+  const [imagePreviews, setImagePreviews] = useState([])
   const [showCamera, setShowCamera] = useState(false)
 
   const criticalityLevels = [
@@ -29,17 +29,25 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target
     
-    if (type === 'file' && files[0]) {
-      const file = files[0]
+    if (type === 'file' && files.length > 0) {
+      const newImages = Array.from(files)
       setFormData(prev => ({
         ...prev,
-        image: file
+        images: [...prev.images, ...newImages]
       }))
       
-      // Create preview
-      const reader = new FileReader()
-      reader.onload = (e) => setImagePreview(e.target.result)
-      reader.readAsDataURL(file)
+      // Create previews for new images
+      newImages.forEach(file => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          setImagePreviews(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            url: e.target.result,
+            file: file
+          }])
+        }
+        reader.readAsDataURL(file)
+      })
     } else if (type === 'checkbox') {
       setFormData(prev => ({
         ...prev,
@@ -64,15 +72,29 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
   const handleCameraCapture = (file) => {
     setFormData(prev => ({
       ...prev,
-      image: file
+      images: [...prev.images, file]
     }))
     
     // Create preview
     const reader = new FileReader()
-    reader.onload = (e) => setImagePreview(e.target.result)
+    reader.onload = (e) => {
+      setImagePreviews(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        url: e.target.result,
+        file: file
+      }])
+    }
     reader.readAsDataURL(file)
     
     setShowCamera(false)
+  }
+
+  const removeImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }))
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
   }
 
   const validateForm = () => {
@@ -80,6 +102,8 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
     
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required'
+    } else if (formData.description.length > 2000) {
+      newErrors.description = 'Description cannot exceed 2000 characters'
     }
     
     if (!formData.is_anonymous) {
@@ -190,17 +214,25 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
               {/* Description */}
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description *
+                  Description * ({formData.description.length}/2000 characters)
                 </label>
                 <textarea
                   id="description"
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
+                  maxLength={2000}
                   rows="4"
-                  className={`input-field ${errors.description ? 'border-red-500' : ''}`}
-                  placeholder="Please provide a detailed description of the incident..."
+                  className={`input-field ${errors.description ? 'border-red-500' : ''} ${
+                    formData.description.length > 1800 ? 'border-orange-300' : ''
+                  }`}
+                  placeholder="Please provide a detailed description of the incident... (max 2000 characters)"
                 />
+                {formData.description.length > 1800 && (
+                  <p className="text-orange-600 text-sm mt-1">
+                    {2000 - formData.description.length} characters remaining
+                  </p>
+                )}
                 {errors.description && (
                   <p className="text-red-500 text-sm mt-1">{errors.description}</p>
                 )}
@@ -209,7 +241,7 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
               {/* Image Upload/Capture */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image (Optional)
+                  Images (Optional) - {formData.images.length} selected
                 </label>
                 <div className="space-y-3">
                   {/* Camera and Upload Buttons */}
@@ -231,13 +263,14 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
                     <label className="cursor-pointer">
                       <div className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                         <Upload className="h-4 w-4" />
-                        <span>Choose File</span>
+                        <span>Choose Files</span>
                       </div>
                       <input
                         type="file"
-                        id="image"
-                        name="image"
+                        id="images"
+                        name="images"
                         accept="image/*"
+                        multiple
                         onChange={handleChange}
                         className="hidden"
                       />
@@ -251,32 +284,28 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
                     </p>
                   )}
 
-                  {/* Image Preview */}
-                  {imagePreview && (
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="h-16 w-16 object-cover rounded border"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-600">
-                          {formData.image?.name || 'Captured image'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Click to remove
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({ ...prev, image: null }))
-                          setImagePreview(null)
-                        }}
-                        className="text-red-500 hover:text-red-700 p-1"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                  {/* Image Previews */}
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={preview.id} className="relative group">
+                          <img
+                            src={preview.url}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                          <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                            {preview.file.name || `Image ${index + 1}`}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

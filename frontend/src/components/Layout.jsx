@@ -6,7 +6,8 @@ import {
   AlertTriangle, 
   QrCode, 
   Menu, 
-  X 
+  X,
+  LayoutDashboard
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -15,6 +16,7 @@ const Layout = ({ children }) => {
   const location = useLocation()
 
   const navigation = [
+    { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Sites', href: '/admin', icon: Building2 },
     { name: 'Emergency Contacts', href: '/admin/contacts', icon: Users },
     { name: 'Incidents', href: '/admin/incidents', icon: AlertTriangle },

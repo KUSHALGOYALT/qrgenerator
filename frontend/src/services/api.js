@@ -39,14 +39,16 @@ export const incidentsAPI = {
     
     // Add all text fields
     Object.keys(data).forEach(key => {
-      if (key !== 'image' && data[key] !== null && data[key] !== undefined) {
+      if (key !== 'images' && data[key] !== null && data[key] !== undefined) {
         formData.append(key, data[key])
       }
     })
     
-    // Add image if present
-    if (data.image) {
-      formData.append('image', data.image)
+    // Add multiple images if present
+    if (data.images && data.images.length > 0) {
+      data.images.forEach((image, index) => {
+        formData.append('images', image)
+      })
     }
     
     return api.post('/incidents/', formData, {
@@ -55,8 +57,17 @@ export const incidentsAPI = {
       },
     })
   },
-  update: (id, data) => api.put(`/incidents/${id}/`, data),
+  update: (id, data) => api.patch(`/incidents/${id}/`, data),
   delete: (id) => api.delete(`/incidents/${id}/`),
+}
+
+// Notification Emails API
+export const notificationEmailsAPI = {
+  getAll: () => api.get('/notification-emails/'),
+  getById: (id) => api.get(`/notification-emails/${id}/`),
+  create: (data) => api.post('/notification-emails/', data),
+  update: (id, data) => api.put(`/notification-emails/${id}/`, data),
+  delete: (id) => api.delete(`/notification-emails/${id}/`),
 }
 
 export default api 

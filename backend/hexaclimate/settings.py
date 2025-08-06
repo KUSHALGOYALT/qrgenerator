@@ -150,12 +150,16 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB 
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # You can change this to your email provider
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@gmail.com'  # Replace with your email
-EMAIL_HOST_PASSWORD = 'your-app-password'  # Replace with your app password
+# For development: Use console backend to print emails to console
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# For production: Use SMTP backend (uncomment and configure)
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'your-email@gmail.com'  # Replace with your email
+# EMAIL_HOST_PASSWORD = 'your-app-password'  # Replace with your app password
 
 # Incident notification emails
 INCIDENT_NOTIFICATION_EMAILS = [
