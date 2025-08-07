@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Edit, Trash2, AlertTriangle, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react'
 import { incidentTypesAPI } from '../services/api'
 
 const IncidentTypesManagement = () => {
@@ -16,7 +16,9 @@ const IncidentTypesManagement = () => {
     description: '',
     requires_criticality: true,
     is_active: true,
-    order: 0
+    order: 0,
+    icon: 'AlertTriangle',
+    color: 'bg-red-500'
   })
 
   useEffect(() => {
@@ -49,7 +51,9 @@ const IncidentTypesManagement = () => {
       description: '',
       requires_criticality: true,
       is_active: true,
-      order: 0
+      order: 0,
+      icon: 'AlertTriangle',
+      color: 'bg-red-500'
     })
     setShowModal(true)
   }
@@ -62,14 +66,36 @@ const IncidentTypesManagement = () => {
       description: type.description || '',
       requires_criticality: type.requires_criticality,
       is_active: type.is_active,
-      order: type.order
+      order: type.order,
+      icon: type.icon || 'AlertTriangle',
+      color: type.color || 'bg-red-500'
     })
     setSelectedSite(type.site)
     setShowModal(true)
   }
 
+  const handleToggleActive = async (type) => {
+    const action = type.is_active ? 'disable' : 'enable'
+    const confirmMessage = type.is_active 
+      ? 'Are you sure you want to disable this incident type? It will no longer appear on the public site.'
+      : 'Are you sure you want to enable this incident type? It will now appear on the public site.'
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        await incidentTypesAPI.update(type.id, {
+          ...type,
+          is_active: !type.is_active
+        })
+        fetchData()
+      } catch (error) {
+        console.error('Error updating incident type:', error)
+        setError(`Failed to ${action} incident type`)
+      }
+    }
+  }
+
   const handleDeleteType = async (typeId) => {
-    if (window.confirm('Are you sure you want to delete this incident type?')) {
+    if (window.confirm('Are you sure you want to permanently delete this incident type? This action cannot be undone and will remove all associated data.')) {
       try {
         await incidentTypesAPI.delete(typeId)
         fetchData()
@@ -117,7 +143,9 @@ const IncidentTypesManagement = () => {
       description: '',
       requires_criticality: true,
       is_active: true,
-      order: 0
+      order: 0,
+      icon: 'AlertTriangle',
+      color: 'bg-red-500'
     })
     setSelectedSite('')
     setError('')
@@ -150,7 +178,7 @@ const IncidentTypesManagement = () => {
           </button>
         </div>
         <p className="mt-2 text-gray-600">
-          Manage incident types for each site. Each site can have its own customized list of incident types.
+          Manage incident types for each site. Disabled types will not appear on the public site but data is preserved.
         </p>
       </div>
 
@@ -188,7 +216,7 @@ const IncidentTypesManagement = () => {
       {/* Incident Types List */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredTypes.map((type) => (
-          <div key={type.id} className="card">
+          <div key={type.id} className={`card ${!type.is_active ? 'opacity-60' : ''}`}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">{type.display_name}</h3>
@@ -204,9 +232,20 @@ const IncidentTypesManagement = () => {
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
+                  onClick={() => handleToggleActive(type)}
+                  className={`p-2 transition-colors ${
+                    type.is_active 
+                      ? 'text-gray-400 hover:text-orange-600' 
+                      : 'text-orange-600 hover:text-orange-700'
+                  }`}
+                  title={type.is_active ? 'Disable Incident Type' : 'Enable Incident Type'}
+                >
+                  {type.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+                <button
                   onClick={() => handleDeleteType(type.id)}
                   className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                  title="Delete Incident Type"
+                  title="Permanently Delete Incident Type"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -220,31 +259,43 @@ const IncidentTypesManagement = () => {
                 {type.requires_criticality ? 'Requires Criticality' : 'No Criticality'}
               </span>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                type.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                type.is_active ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
               }`}>
-                {type.is_active ? 'Active' : 'Inactive'}
+                {type.is_active ? 'Active' : 'Disabled'}
+              </span>
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                Order: {type.order}
               </span>
             </div>
             
-            <div className="text-xs text-gray-500">
-              Order: {type.order}
+            <div className="flex items-center space-x-2 text-xs text-gray-500">
+              <span>Icon: {type.icon || 'AlertTriangle'}</span>
+              <span>Color: {type.color || 'bg-red-500'}</span>
             </div>
           </div>
         ))}
       </div>
 
-      {filteredTypes.length === 0 && !loading && (
+      {/* Empty State */}
+      {filteredTypes.length === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <AlertTriangle className="h-12 w-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No incident types found</h3>
-          <p className="text-gray-600">
-            {incidentTypes.length === 0 
-              ? 'No incident types have been created yet.'
-              : 'No incident types match the current filter.'
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Incident Types Found</h3>
+          <p className="text-gray-600 mb-6">
+            {selectedSite 
+              ? 'No incident types have been created for this site yet.'
+              : 'No incident types have been created yet.'
             }
           </p>
+          <button
+            onClick={handleCreateType}
+            className="btn-primary flex items-center gap-2 mx-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Create First Incident Type
+          </button>
         </div>
       )}
 
@@ -320,8 +371,8 @@ const IncidentTypesManagement = () => {
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Describe this incident type..."
                   rows="3"
-                  placeholder="Description of this incident type"
                 />
               </div>
 
@@ -334,8 +385,59 @@ const IncidentTypesManagement = () => {
                   value={formData.order}
                   onChange={(e) => setFormData({...formData, order: parseInt(e.target.value) || 0})}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="0"
+                  placeholder="0"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Icon
+                </label>
+                <select
+                  value={formData.icon}
+                  onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="AlertTriangle">AlertTriangle</option>
+                  <option value="Shield">Shield</option>
+                  <option value="Eye">Eye</option>
+                  <option value="Send">Send</option>
+                  <option value="AlertCircle">AlertCircle</option>
+                  <option value="Bell">Bell</option>
+                  <option value="Bug">Bug</option>
+                  <option value="Camera">Camera</option>
+                  <option value="CheckCircle">CheckCircle</option>
+                  <option value="Clock">Clock</option>
+                  <option value="Factory">Factory</option>
+                  <option value="Flame">Flame</option>
+                  <option value="Heart">Heart</option>
+                  <option value="Info">Info</option>
+                  <option value="Lightbulb">Lightbulb</option>
+                  <option value="MessageCircle">MessageCircle</option>
+                  <option value="Settings">Settings</option>
+                  <option value="Tool">Tool</option>
+                  <option value="Wrench">Wrench</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Color
+                </label>
+                <select
+                  value={formData.color}
+                  onChange={(e) => setFormData({...formData, color: e.target.value})}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="bg-red-500">Red</option>
+                  <option value="bg-orange-500">Orange</option>
+                  <option value="bg-yellow-500">Yellow</option>
+                  <option value="bg-green-500">Green</option>
+                  <option value="bg-blue-500">Blue</option>
+                  <option value="bg-purple-500">Purple</option>
+                  <option value="bg-pink-500">Pink</option>
+                  <option value="bg-gray-500">Gray</option>
+                </select>
               </div>
 
               <div className="flex items-center space-x-4">
@@ -358,7 +460,7 @@ const IncidentTypesManagement = () => {
                     onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="ml-2 text-sm text-gray-700">Active</span>
+                  <span className="ml-2 text-sm text-gray-700">Active (Visible on Public Site)</span>
                 </label>
               </div>
 
