@@ -245,17 +245,16 @@ class SiteViewSet(viewsets.ModelViewSet):
         qr_image.save(buffer, format='PNG')
         qr_base64 = base64.b64encode(buffer.getvalue()).decode()
         
-        # Create composite image with header
+        # Create composite image with vertical layout: header, QR, description
         from PIL import Image, ImageDraw, ImageFont
         import os
         
-        # Create a composite image with logo on the left of site name, and description
-        # Enhanced dimensions and spacing for long site names
-        qr_size = 350
-        header_height = 80  # Height for logo + site name row
+        # Layout: Logo + site name at top, QR code in middle, description at bottom
+        qr_size = 300  # Larger QR code for better scanning
+        header_height = 80  # Height for logo + site name
         description_height = 60
         total_height = header_height + qr_size + description_height
-        total_width = qr_size
+        total_width = qr_size + 40  # Width to accommodate QR code + margins
         
         # Create the composite image
         composite = Image.new('RGB', (total_width, total_height), 'white')
@@ -263,47 +262,58 @@ class SiteViewSet(viewsets.ModelViewSet):
         
         # Try to use better fonts
         try:
-            header_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 18)  # Smaller font for long names
-            desc_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 16)
+            header_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 24)  # Larger font for header
+            desc_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 18)
         except:
             try:
-                header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
-                desc_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
+                header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+                desc_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
             except:
                 header_font = ImageFont.load_default()
                 desc_font = ImageFont.load_default()
         
-        # Add logo image on the left side
-        logo_size = 40  # Size of the logo (40x40 pixels)
+        # Position logo and site name at the top
+        logo_size = 40  # Logo size
         logo_x = 20  # 20px from left edge
         logo_y = (header_height - logo_size) // 2  # Center vertically in header area
         
-        # Try to load logo image from static files
-        logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png')
-        if os.path.exists(logo_path):
+        # Try to load Hexa Climate logo from web URL
+        import requests
+        from io import BytesIO
+        
+        logo_url = "https://hexaclimate.com/wp-content/uploads/2023/11/Hexa-Logo-with-black-text-1.svg"
+        
+        try:
+            # Download the logo from the web
+            response = requests.get(logo_url, timeout=10)
+            response.raise_for_status()
+            
+            # Convert SVG to PNG using cairosvg if available, otherwise use a fallback
             try:
-                logo_img = Image.open(logo_path)
-                # Resize logo to fit
-                logo_img = logo_img.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+                import cairosvg
+                # Convert SVG to PNG
+                png_data = cairosvg.svg2png(bytestring=response.content, output_width=logo_size, output_height=logo_size)
+                logo_img = Image.open(BytesIO(png_data))
                 # Paste logo onto composite image
-                composite.paste(logo_img, (logo_x, logo_y))
-                print(f"✅ Logo loaded from: {logo_path}")
-            except Exception as e:
-                print(f"⚠️  Error loading logo: {e}")
-                # Fallback to text logo
-                logo_text = "LOGO"
+                composite.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
+                print(f"✅ Hexa Climate logo loaded from: {logo_url}")
+            except ImportError:
+                # Fallback: try to use the SVG directly or create a text logo
+                print(f"⚠️  cairosvg not available, using fallback logo")
+                logo_text = "HEXA"
                 logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
                 logo_width = logo_bbox[2] - logo_bbox[0]
                 draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
-        else:
-            print(f"⚠️  Logo not found at: {logo_path}")
+                
+        except Exception as e:
+            print(f"⚠️  Error loading Hexa Climate logo: {e}")
             # Fallback to text logo
-            logo_text = "LOGO"
+            logo_text = "HEXA"
             logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
             logo_width = logo_bbox[2] - logo_bbox[0]
             draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
         
-        # Handle site name on the right side of the logo
+        # Handle site name - always positioned to the right of the logo
         site_name = site.name
         site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
         site_width = site_bbox[2] - site_bbox[0]
@@ -322,21 +332,24 @@ class SiteViewSet(viewsets.ModelViewSet):
             site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
             site_width = site_bbox[2] - site_bbox[0]
         
-        # Position site name to the right of logo
+        # Always position site name to the right of logo (logo is always on the left)
         site_x = logo_end
         site_y = (header_height - site_bbox[3]) // 2  # Center vertically in header area
         draw.text((site_x, site_y), site_name, fill='black', font=header_font)
         
-        # Add QR code centered
+        # Add QR code in the middle (centered horizontally)
+        qr_x = (total_width - qr_size) // 2  # Center horizontally
+        qr_y = header_height  # Below the header
         qr_image_resized = qr_image.resize((qr_size, qr_size))
-        composite.paste(qr_image_resized, (0, header_height))
+        composite.paste(qr_image_resized, (qr_x, qr_y))
         
-        # Center the description text
+        # Center the description text at the bottom
         description = "Scan for Site info and Reporting Issues"
         desc_bbox = draw.textbbox((0, 0), description, font=desc_font)
         desc_width = desc_bbox[2] - desc_bbox[0]
         desc_x = (total_width - desc_width) // 2
-        draw.text((desc_x, header_height + qr_size + 15), description, fill='black', font=desc_font)
+        desc_y = header_height + qr_size + 15  # Below the QR code
+        draw.text((desc_x, desc_y), description, fill='black', font=desc_font)
         
         # Convert composite to base64
         buffer = io.BytesIO()
