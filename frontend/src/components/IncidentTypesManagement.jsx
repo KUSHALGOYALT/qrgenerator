@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, AlertTriangle, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react'
-import { incidentTypesAPI } from '../services/api'
+import { incidentTypesAPI, sitesAPI } from '../services/api'
 
 const IncidentTypesManagement = () => {
   const [incidentTypes, setIncidentTypes] = useState([])
@@ -30,11 +30,17 @@ const IncidentTypesManagement = () => {
       setLoading(true)
       const [typesRes, sitesRes] = await Promise.all([
         incidentTypesAPI.getAll(),
-        fetch('/hex/api/sites/').then(res => res.json())
+        sitesAPI.getAll()
       ])
       
-      setIncidentTypes(typesRes.data.results || typesRes.data)
-      setSites(sitesRes.results || sitesRes)
+      const typesData = typesRes.data.results || typesRes.data
+      const sitesData = sitesRes.data.results || sitesRes.data
+      
+      console.log('Fetched incident types:', typesData)
+      console.log('Fetched sites:', sitesData)
+      
+      setIncidentTypes(typesData)
+      setSites(sitesData)
     } catch (error) {
       console.error('Error fetching data:', error)
       setError('Failed to load incident types')
@@ -151,9 +157,18 @@ const IncidentTypesManagement = () => {
     setError('')
   }
 
-  const filteredTypes = selectedSite 
+  // Filter by site first
+  let filteredTypes = selectedSite && selectedSite !== ""
     ? incidentTypes.filter(type => type.site === selectedSite)
     : incidentTypes
+
+  // Optionally hide disabled types from admin view
+  // Uncomment the next line if you want to hide disabled types
+  // filteredTypes = filteredTypes.filter(type => type.is_active)
+
+  console.log('Selected site:', selectedSite)
+  console.log('Total incident types:', incidentTypes.length)
+  console.log('Filtered incident types:', filteredTypes.length)
 
   if (loading) {
     return (
