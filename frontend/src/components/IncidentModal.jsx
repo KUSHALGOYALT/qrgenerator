@@ -6,7 +6,7 @@ import { isCameraSupported } from '../utils/cameraUtils'
 
 const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
   const [formData, setFormData] = useState({
-    incident_type: incidentType,
+    incident_type: incidentType.name,
     criticality: 'medium',
     description: '',
     images: [],
@@ -133,8 +133,8 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
         site: site.id,
       }
       
-      // Remove criticality for general feedback
-      if (incidentType === 'general_feedback') {
+      // Remove criticality if the incident type doesn't require it
+      if (!incidentType.requires_criticality) {
         delete submitData.criticality
       }
       
@@ -155,16 +155,6 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
     }
   }
 
-  const getIncidentTypeTitle = (type) => {
-    const titles = {
-      'unsafe_conditions': 'Unsafe Conditions',
-      'unsafe_actions': 'Unsafe Actions',
-      'near_miss': 'Near Miss',
-      'general_feedback': 'General Feedback',
-    }
-    return titles[type] || type
-  }
-
   return (
     <>
       <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -172,7 +162,7 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
           <div className="mt-3">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">
-                Report {getIncidentTypeTitle(incidentType)}
+                Report {incidentType.display_name}
               </h3>
               <button
                 onClick={onClose}
@@ -183,8 +173,8 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Criticality - Hide for general feedback */}
-              {incidentType !== 'general_feedback' && (
+              {/* Criticality - Show only if the incident type requires it */}
+              {incidentType.requires_criticality && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Criticality Level *
@@ -207,108 +197,92 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
                           onChange={handleChange}
                           className="sr-only"
                         />
-                        <span className={`font-medium ${level.color}`}>
-                          {level.label}
-                        </span>
+                        <div className="flex items-center">
+                          <div className={`w-3 h-3 rounded-full border-2 mr-2 ${
+                            formData.criticality === level.value
+                              ? 'border-primary-500 bg-primary-500'
+                              : 'border-gray-300'
+                          }`} />
+                          <span className={`text-sm font-medium ${level.color}`}>
+                            {level.label}
+                          </span>
+                        </div>
                       </label>
                     ))}
                   </div>
+                  {errors.criticality && (
+                    <p className="text-red-500 text-sm mt-1">{errors.criticality}</p>
+                  )}
                 </div>
               )}
 
               {/* Description */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description * ({formData.description.length}/2000 characters)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description *
                 </label>
                 <textarea
-                  id="description"
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  maxLength={2000}
-                  rows="4"
-                  className={`input-field ${errors.description ? 'border-red-500' : ''} ${
-                    formData.description.length > 1800 ? 'border-orange-300' : ''
-                  }`}
-                  placeholder="Please provide a detailed description of the incident... (max 2000 characters)"
+                  rows={4}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Please describe the incident or feedback in detail..."
                 />
-                {formData.description.length > 1800 && (
-                  <p className="text-orange-600 text-sm mt-1">
-                    {2000 - formData.description.length} characters remaining
-                  </p>
-                )}
                 {errors.description && (
                   <p className="text-red-500 text-sm mt-1">{errors.description}</p>
                 )}
               </div>
 
-              {/* Image Upload/Capture */}
+              {/* Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Images (Optional) - {formData.images.length} selected
+                  Images (Optional)
                 </label>
-                <div className="space-y-3">
-                  {/* Camera and Upload Buttons */}
-                  <div className="flex space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowCamera(true)}
-                      disabled={!isCameraSupported()}
-                      className={`flex items-center space-x-2 px-4 py-2 border rounded-lg transition-colors ${
-                        isCameraSupported()
-                          ? 'border-gray-300 hover:bg-gray-50'
-                          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
-                      title={!isCameraSupported() ? 'Camera not supported on this device' : 'Take a photo using your camera'}
-                    >
-                      <Camera className="h-4 w-4" />
-                      <span>Take Photo</span>
-                    </button>
-                    <label className="cursor-pointer">
-                      <div className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        <Upload className="h-4 w-4" />
-                        <span>Choose Files</span>
-                      </div>
+                <div className="space-y-4">
+                  {/* Upload Button */}
+                  <div className="flex gap-2">
+                    <label className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Images
                       <input
                         type="file"
-                        id="images"
-                        name="images"
-                        accept="image/*"
                         multiple
+                        accept="image/*"
                         onChange={handleChange}
                         className="hidden"
                       />
                     </label>
+                    
+                    {isCameraSupported() && (
+                      <button
+                        type="button"
+                        onClick={() => setShowCamera(true)}
+                        className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <Camera className="h-4 w-4 mr-2" />
+                        Take Photo
+                      </button>
+                    )}
                   </div>
-
-                  {/* Camera support notice */}
-                  {!isCameraSupported() && (
-                    <p className="text-xs text-gray-500">
-                      Camera capture is not available on this device. You can still upload images from your gallery.
-                    </p>
-                  )}
 
                   {/* Image Previews */}
                   {imagePreviews.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {imagePreviews.map((preview, index) => (
-                        <div key={preview.id} className="relative group">
+                        <div key={preview.id} className="relative">
                           <img
                             src={preview.url}
                             alt={`Preview ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg border"
+                            className="w-full h-24 object-cover rounded-lg"
                           />
                           <button
                             type="button"
                             onClick={() => removeImage(index)}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
-                          <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                            {preview.file.name || `Image ${index + 1}`}
-                          </div>
                         </div>
                       ))}
                     </div>
@@ -316,60 +290,58 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
                 </div>
               </div>
 
-              {/* Anonymous Checkbox */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="is_anonymous"
-                  name="is_anonymous"
-                  checked={formData.is_anonymous}
-                  onChange={handleChange}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                />
-                <label htmlFor="is_anonymous" className="text-sm text-gray-700">
-                  Submit anonymously
+              {/* Anonymous Reporting */}
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="is_anonymous"
+                    checked={formData.is_anonymous}
+                    onChange={handleChange}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Submit anonymously</span>
                 </label>
               </div>
 
-              {/* Reporter Information (shown when not anonymous) */}
+              {/* Reporter Information - Show only if not anonymous */}
               {!formData.is_anonymous && (
-                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <User className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Reporter Information</span>
-                  </div>
-                  
+                <div className="space-y-4">
                   <div>
-                    <label htmlFor="reporter_name" className="block text-sm font-medium text-gray-700 mb-1">
-                      Name *
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Your Name *
                     </label>
-                    <input
-                      type="text"
-                      id="reporter_name"
-                      name="reporter_name"
-                      value={formData.reporter_name}
-                      onChange={handleChange}
-                      className={`input-field ${errors.reporter_name ? 'border-red-500' : ''}`}
-                      placeholder="Enter your name"
-                    />
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        name="reporter_name"
+                        value={formData.reporter_name}
+                        onChange={handleChange}
+                        className="w-full pl-10 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Enter your name"
+                      />
+                    </div>
                     {errors.reporter_name && (
                       <p className="text-red-500 text-sm mt-1">{errors.reporter_name}</p>
                     )}
                   </div>
 
                   <div>
-                    <label htmlFor="reporter_phone" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phone Number *
                     </label>
-                    <input
-                      type="tel"
-                      id="reporter_phone"
-                      name="reporter_phone"
-                      value={formData.reporter_phone}
-                      onChange={handleChange}
-                      className={`input-field ${errors.reporter_phone ? 'border-red-500' : ''}`}
-                      placeholder="Enter your phone number"
-                    />
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="tel"
+                        name="reporter_phone"
+                        value={formData.reporter_phone}
+                        onChange={handleChange}
+                        className="w-full pl-10 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
                     {errors.reporter_phone && (
                       <p className="text-red-500 text-sm mt-1">{errors.reporter_phone}</p>
                     )}
@@ -378,19 +350,18 @@ const IncidentModal = ({ site, incidentType, onClose, onSubmitted }) => {
               )}
 
               {/* Submit Button */}
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="btn-secondary"
-                  disabled={loading}
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary"
                   disabled={loading}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Submitting...' : 'Submit Report'}
                 </button>

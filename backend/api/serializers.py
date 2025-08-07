@@ -43,7 +43,8 @@ class IncidentImageSerializer(serializers.ModelSerializer):
 
 class IncidentSerializer(serializers.ModelSerializer):
     site_name = serializers.CharField(source='site.name', read_only=True)
-    incident_type_display = serializers.CharField(source='get_incident_type_display', read_only=True)
+    incident_type_name = serializers.CharField(source='incident_type.name', read_only=True)
+    incident_type_display = serializers.CharField(source='incident_type.display_name', read_only=True)
     criticality_display = serializers.SerializerMethodField()
     images = IncidentImageSerializer(many=True, read_only=True)
     image_count = serializers.ReadOnlyField()
@@ -51,7 +52,7 @@ class IncidentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Incident
         fields = [
-            'id', 'site', 'site_name', 'incident_type', 'incident_type_display',
+            'id', 'site', 'site_name', 'incident_type', 'incident_type_name', 'incident_type_display',
             'criticality', 'criticality_display', 'status', 'description', 'images', 'image_count',
             'is_anonymous', 'reporter_name', 'reporter_phone',
             'created_at', 'updated_at'

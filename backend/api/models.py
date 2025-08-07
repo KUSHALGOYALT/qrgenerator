@@ -90,13 +90,6 @@ class IncidentType(models.Model):
 
 class Incident(models.Model):
     """Model for incident reports"""
-    INCIDENT_TYPES = [
-        ('unsafe_conditions', 'Unsafe Conditions'),
-        ('unsafe_actions', 'Unsafe Actions'),
-        ('near_miss', 'Near Miss'),
-        ('general_feedback', 'General Feedback'),
-    ]
-
     CRITICALITY_LEVELS = [
         ('low', 'Low'),
         ('medium', 'Medium'),
@@ -113,7 +106,7 @@ class Incident(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='incidents')
-    incident_type = models.CharField(max_length=20, choices=INCIDENT_TYPES)
+    incident_type = models.ForeignKey(IncidentType, on_delete=models.CASCADE, related_name='incidents')
     criticality = models.CharField(max_length=10, choices=CRITICALITY_LEVELS, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
     description = models.TextField(max_length=2000)
@@ -127,13 +120,13 @@ class Incident(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        # Set default criticality for general feedback
-        if self.incident_type == 'general_feedback' and not self.criticality:
+        # Set default criticality for incident types that don't require criticality
+        if not self.incident_type.requires_criticality and not self.criticality:
             self.criticality = 'low'
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.get_incident_type_display()} - {self.site.name} ({self.created_at.strftime('%Y-%m-%d')})"
+        return f"{self.incident_type.display_name} - {self.site.name} ({self.created_at.strftime('%Y-%m-%d')})"
 
     @property
     def image_count(self):

@@ -93,6 +93,57 @@ class SiteViewSet(viewsets.ModelViewSet):
             return SiteDetailSerializer
         return SiteSerializer
 
+    def create_default_incident_types(self, site):
+        """Create default incident types for a new site"""
+        default_types = [
+            {
+                'name': 'unsafe_conditions',
+                'display_name': 'Unsafe Conditions',
+                'description': 'Report unsafe conditions or hazards in the workplace',
+                'requires_criticality': True,
+                'order': 1
+            },
+            {
+                'name': 'unsafe_actions',
+                'display_name': 'Unsafe Actions',
+                'description': 'Report unsafe actions or behaviors',
+                'requires_criticality': True,
+                'order': 2
+            },
+            {
+                'name': 'near_miss',
+                'display_name': 'Near Miss',
+                'description': 'Report near miss incidents',
+                'requires_criticality': True,
+                'order': 3
+            },
+            {
+                'name': 'general_feedback',
+                'display_name': 'General Feedback',
+                'description': 'General feedback or suggestions',
+                'requires_criticality': False,
+                'order': 4
+            }
+        ]
+        
+        for incident_type_data in default_types:
+            IncidentType.objects.get_or_create(
+                site=site,
+                name=incident_type_data['name'],
+                defaults={
+                    'display_name': incident_type_data['display_name'],
+                    'description': incident_type_data['description'],
+                    'requires_criticality': incident_type_data['requires_criticality'],
+                    'order': incident_type_data['order']
+                }
+            )
+
+    def perform_create(self, serializer):
+        """Override to create default incident types after site creation"""
+        site = serializer.save()
+        self.create_default_incident_types(site)
+        return site
+
     @action(detail=True, methods=['get'])
     def contacts(self, request, pk=None):
         site = self.get_object()
@@ -314,8 +365,30 @@ class IncidentViewSet(viewsets.ModelViewSet):
         # Handle image uploads
         images = request.FILES.getlist('images')
         
+        # Get the incident type object based on name and site
+        incident_type_name = request.data.get('incident_type')
+        site_id = request.data.get('site')
+        
+        if not incident_type_name or not site_id:
+            return Response(
+                {'error': 'incident_type and site are required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            incident_type = IncidentType.objects.get(site_id=site_id, name=incident_type_name)
+        except IncidentType.DoesNotExist:
+            return Response(
+                {'error': f'Incident type "{incident_type_name}" not found for this site'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create the incident with the incident type object
+        data = request.data.copy()
+        data['incident_type'] = incident_type.id
+        
         # Create the incident
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         incident = serializer.save()
         
