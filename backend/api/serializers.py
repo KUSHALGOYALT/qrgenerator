@@ -6,7 +6,7 @@ from .models import Site, EmergencyContact, Incident, IncidentImage, Notificatio
 class IncidentTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = IncidentType
-        fields = ['id', 'site', 'name', 'display_name', 'description', 'requires_criticality', 'is_active', 'order', 'created_at', 'updated_at']
+        fields = ['id', 'site', 'name', 'display_name', 'description', 'icon', 'color', 'requires_criticality', 'is_active', 'order', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 

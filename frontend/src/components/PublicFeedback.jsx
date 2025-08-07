@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Phone, AlertTriangle, Shield, Eye, Send } from 'lucide-react'
+import { 
+  Phone, AlertTriangle, Shield, Eye, Send, AlertCircle, AlertOctagon, AlertSquare,
+  Bell, Bug, Camera, Car, CheckCircle, Clock, Cloud, Database, Droplets, Factory,
+  Flame, Heart, Home, Info, Lightbulb, MapPin, MessageCircle, Mic, Monitor,
+  Package, Settings, Star, Target, Tool, Truck, User, Users, Wrench, Zap
+} from 'lucide-react'
 import { sitesAPI, incidentsAPI, incidentTypesAPI } from '../services/api'
 import IncidentModal from './IncidentModal'
 import EmergencyContactsModal from './EmergencyContactsModal'
@@ -63,26 +68,78 @@ const PublicFeedback = () => {
     setSubmitted(false)
   }
 
-  // Icon mapping for incident types
-  const getIconForType = (typeName) => {
+  // Dynamic icon mapping for incident types
+  const getIconForType = (incidentType) => {
+    // If incidentType has icon property, use it dynamically
+    if (incidentType.icon) {
+      // Import all available icons from lucide-react
+      const iconMap = {
+        'AlertTriangle': AlertTriangle,
+        'Shield': Shield,
+        'Eye': Eye,
+        'Send': Send,
+        'AlertCircle': AlertCircle,
+        'AlertOctagon': AlertOctagon,
+        'AlertSquare': AlertSquare,
+        'Bell': Bell,
+        'Bug': Bug,
+        'Camera': Camera,
+        'Car': Car,
+        'CheckCircle': CheckCircle,
+        'Clock': Clock,
+        'Cloud': Cloud,
+        'Database': Database,
+        'Droplets': Droplets,
+        'Factory': Factory,
+        'Flame': Flame,
+        'Heart': Heart,
+        'Home': Home,
+        'Info': Info,
+        'Lightbulb': Lightbulb,
+        'MapPin': MapPin,
+        'MessageCircle': MessageCircle,
+        'Mic': Mic,
+        'Monitor': Monitor,
+        'Package': Package,
+        'Phone': Phone,
+        'Settings': Settings,
+        'Star': Star,
+        'Target': Target,
+        'Tool': Tool,
+        'Truck': Truck,
+        'User': User,
+        'Users': Users,
+        'Wrench': Wrench,
+        'Zap': Zap,
+      }
+      return iconMap[incidentType.icon] || Send
+    }
+    
+    // Fallback to old hardcoded mapping for backward compatibility
     const iconMap = {
       'unsafe_conditions': AlertTriangle,
       'unsafe_actions': Shield,
       'near_miss': Eye,
       'general_feedback': Send,
     }
-    return iconMap[typeName] || Send
+    return iconMap[incidentType.name] || Send
   }
 
-  // Color mapping for incident types
-  const getColorForType = (typeName) => {
+  // Dynamic color mapping for incident types
+  const getColorForType = (incidentType) => {
+    // If incidentType has color property, use it directly
+    if (incidentType.color) {
+      return incidentType.color
+    }
+    
+    // Fallback to old hardcoded mapping for backward compatibility
     const colorMap = {
       'unsafe_conditions': 'bg-red-500',
       'unsafe_actions': 'bg-orange-500',
       'near_miss': 'bg-yellow-500',
       'general_feedback': 'bg-blue-500',
     }
-    return colorMap[typeName] || 'bg-gray-500'
+    return colorMap[incidentType.name] || 'bg-gray-500'
   }
 
   if (loading) {
@@ -190,8 +247,8 @@ const PublicFeedback = () => {
         {incidentTypes.length > 0 ? (
           <div className="grid md:grid-cols-2 gap-6">
             {incidentTypes.map((incidentType) => {
-              const IconComponent = getIconForType(incidentType.name)
-              const colorClass = getColorForType(incidentType.name)
+              const IconComponent = getIconForType(incidentType)
+              const colorClass = getColorForType(incidentType)
               
               return (
                 <div

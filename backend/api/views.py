@@ -100,6 +100,8 @@ class SiteViewSet(viewsets.ModelViewSet):
                 'name': 'unsafe_conditions',
                 'display_name': 'Unsafe Conditions',
                 'description': 'Report unsafe conditions or hazards in the workplace',
+                'icon': 'AlertTriangle',
+                'color': 'bg-red-500',
                 'requires_criticality': True,
                 'order': 1
             },
@@ -107,6 +109,8 @@ class SiteViewSet(viewsets.ModelViewSet):
                 'name': 'unsafe_actions',
                 'display_name': 'Unsafe Actions',
                 'description': 'Report unsafe actions or behaviors',
+                'icon': 'Shield',
+                'color': 'bg-orange-500',
                 'requires_criticality': True,
                 'order': 2
             },
@@ -114,6 +118,8 @@ class SiteViewSet(viewsets.ModelViewSet):
                 'name': 'near_miss',
                 'display_name': 'Near Miss',
                 'description': 'Report near miss incidents',
+                'icon': 'Eye',
+                'color': 'bg-yellow-500',
                 'requires_criticality': True,
                 'order': 3
             },
@@ -121,6 +127,8 @@ class SiteViewSet(viewsets.ModelViewSet):
                 'name': 'general_feedback',
                 'display_name': 'General Feedback',
                 'description': 'General feedback or suggestions',
+                'icon': 'Send',
+                'color': 'bg-blue-500',
                 'requires_criticality': False,
                 'order': 4
             }
@@ -133,6 +141,8 @@ class SiteViewSet(viewsets.ModelViewSet):
                 defaults={
                     'display_name': incident_type_data['display_name'],
                     'description': incident_type_data['description'],
+                    'icon': incident_type_data['icon'],
+                    'color': incident_type_data['color'],
                     'requires_criticality': incident_type_data['requires_criticality'],
                     'order': incident_type_data['order']
                 }
@@ -239,13 +249,12 @@ class SiteViewSet(viewsets.ModelViewSet):
         from PIL import Image, ImageDraw, ImageFont
         import os
         
-        # Create a composite image with logo, site name, and description
+        # Create a composite image with logo on the left of site name, and description
         # Enhanced dimensions and spacing for long site names
         qr_size = 350
-        logo_height = 60
-        header_height = 100  # Increased for long site names
+        header_height = 80  # Height for logo + site name row
         description_height = 60
-        total_height = logo_height + header_height + qr_size + description_height
+        total_height = header_height + qr_size + description_height
         total_width = qr_size
         
         # Create the composite image
@@ -264,63 +273,70 @@ class SiteViewSet(viewsets.ModelViewSet):
                 header_font = ImageFont.load_default()
                 desc_font = ImageFont.load_default()
         
-        # Add Hexa logo at the top
-        logo_text = "HEXA CLIMATE"
-        logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
-        logo_width = logo_bbox[2] - logo_bbox[0]
-        logo_x = (total_width - logo_width) // 2
-        draw.text((logo_x, 10), logo_text, fill='black', font=header_font)
+        # Add logo image on the left side
+        logo_size = 40  # Size of the logo (40x40 pixels)
+        logo_x = 20  # 20px from left edge
+        logo_y = (header_height - logo_size) // 2  # Center vertically in header area
         
-        # Handle long site names by wrapping text
-        header_text = site.name
-        header_bbox = draw.textbbox((0, 0), header_text, font=header_font)
-        header_width = header_bbox[2] - header_bbox[0]
-        
-        # If text is too long, wrap it
-        if header_width > total_width - 20:  # Leave 10px margin on each side
-            # Split into multiple lines
-            words = header_text.split()
-            lines = []
-            current_line = ""
-            
-            for word in words:
-                test_line = current_line + " " + word if current_line else word
-                test_bbox = draw.textbbox((0, 0), test_line, font=header_font)
-                test_width = test_bbox[2] - test_bbox[0]
-                
-                if test_width <= total_width - 20:
-                    current_line = test_line
-                else:
-                    if current_line:
-                        lines.append(current_line)
-                    current_line = word
-            
-            if current_line:
-                lines.append(current_line)
-            
-            # Draw multiple lines
-            line_height = 25
-            start_y = logo_height + 20
-            for i, line in enumerate(lines):
-                line_bbox = draw.textbbox((0, 0), line, font=header_font)
-                line_width = line_bbox[2] - line_bbox[0]
-                line_x = (total_width - line_width) // 2
-                draw.text((line_x, start_y + i * line_height), line, fill='black', font=header_font)
+        # Try to load logo image from static files
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'logo.png')
+        if os.path.exists(logo_path):
+            try:
+                logo_img = Image.open(logo_path)
+                # Resize logo to fit
+                logo_img = logo_img.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+                # Paste logo onto composite image
+                composite.paste(logo_img, (logo_x, logo_y))
+                print(f"✅ Logo loaded from: {logo_path}")
+            except Exception as e:
+                print(f"⚠️  Error loading logo: {e}")
+                # Fallback to text logo
+                logo_text = "LOGO"
+                logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
+                logo_width = logo_bbox[2] - logo_bbox[0]
+                draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
         else:
-            # Single line - center it
-            header_x = (total_width - header_width) // 2
-            draw.text((header_x, logo_height + 20), header_text, fill='black', font=header_font)
+            print(f"⚠️  Logo not found at: {logo_path}")
+            # Fallback to text logo
+            logo_text = "LOGO"
+            logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
+            logo_width = logo_bbox[2] - logo_bbox[0]
+            draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
+        
+        # Handle site name on the right side of the logo
+        site_name = site.name
+        site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
+        site_width = site_bbox[2] - site_bbox[0]
+        
+        # Calculate available space for site name (after logo + spacing)
+        logo_end = logo_x + logo_size + 15  # 15px spacing between logo and site name
+        available_width = total_width - logo_end - 20  # 20px right margin
+        
+        # If site name is too long, truncate it with ellipsis
+        if site_width > available_width:
+            # Try to fit as much as possible
+            truncated_name = site_name
+            while truncated_name and draw.textbbox((0, 0), truncated_name + "...", font=header_font)[2] > available_width:
+                truncated_name = truncated_name[:-1]
+            site_name = truncated_name + "..." if truncated_name else site_name[:10] + "..."
+            site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
+            site_width = site_bbox[2] - site_bbox[0]
+        
+        # Position site name to the right of logo
+        site_x = logo_end
+        site_y = (header_height - site_bbox[3]) // 2  # Center vertically in header area
+        draw.text((site_x, site_y), site_name, fill='black', font=header_font)
         
         # Add QR code centered
         qr_image_resized = qr_image.resize((qr_size, qr_size))
-        composite.paste(qr_image_resized, (0, logo_height + header_height))
+        composite.paste(qr_image_resized, (0, header_height))
         
         # Center the description text
         description = "Scan for Site info and Reporting Issues"
         desc_bbox = draw.textbbox((0, 0), description, font=desc_font)
         desc_width = desc_bbox[2] - desc_bbox[0]
         desc_x = (total_width - desc_width) // 2
-        draw.text((desc_x, logo_height + header_height + qr_size + 15), description, fill='black', font=desc_font)
+        draw.text((desc_x, header_height + qr_size + 15), description, fill='black', font=desc_font)
         
         # Convert composite to base64
         buffer = io.BytesIO()

@@ -74,6 +74,8 @@ class IncidentType(models.Model):
     name = models.CharField(max_length=100)
     display_name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
+    icon = models.CharField(max_length=50, default='AlertTriangle', help_text='Lucide React icon name')
+    color = models.CharField(max_length=20, default='bg-red-500', help_text='Tailwind CSS color class')
     requires_criticality = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     order = models.IntegerField(default=0)
