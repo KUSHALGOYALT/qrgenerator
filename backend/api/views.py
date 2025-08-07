@@ -245,136 +245,175 @@ class SiteViewSet(viewsets.ModelViewSet):
         qr_image.save(buffer, format='PNG')
         qr_base64 = base64.b64encode(buffer.getvalue()).decode()
         
-        # Create composite image with vertical layout: header, QR, description
-        from PIL import Image, ImageDraw, ImageFont
-        import os
+        # Create composite image with fixed layout
+        qr_size = 300
+        header_height = 70
+        description_height = 80
         
-        # Layout: Logo + site name at top, QR code in middle, description at bottom
-        qr_size = 300  # Larger QR code for better scanning
-        header_height = 80  # Height for logo + site name
-        description_height = 80  # Increased height for description
-        total_height = header_height + qr_size + description_height
-        total_width = qr_size + 80  # Increased width to accommodate longer site names
+        # Fixed layout parameters
+        margin_top = 25
+        margin_bottom = 35
+        margin_left = 20
+        margin_right = 20
         
-        # Create the composite image
+        # Calculate total dimensions with fixed margins
+        total_width = qr_size + margin_left + margin_right
+        total_height = margin_top + header_height + qr_size + description_height + margin_bottom + 15
+        
         composite = Image.new('RGB', (total_width, total_height), 'white')
         draw = ImageDraw.Draw(composite)
         
-        # Try to use better fonts
+        # Try to use fixed fonts
         try:
-            header_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 24)  # Larger font for header
+            header_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 28)
             desc_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 18)
         except:
+            header_font = ImageFont.load_default()
+            desc_font = ImageFont.load_default()
+        
+        # Position logo and site name at the top with fixed alignment
+        logo_size = 50
+        logo_x = margin_left
+        logo_y = margin_top + (header_height - logo_size) // 2
+        
+        # Try to load Hexa Climate logo from local PNG file
+        logo_path = os.path.join(settings.BASE_DIR, 'static', 'images', 'image.png')
+        
+        if os.path.exists(logo_path):
             try:
-                header_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
-                desc_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
-            except:
-                header_font = ImageFont.load_default()
-                desc_font = ImageFont.load_default()
-        
-        # Position logo and site name at the top
-        logo_size = 40  # Logo size
-        logo_x = 20  # 20px from left edge
-        logo_y = (header_height - logo_size) // 2  # Center vertically in header area
-        
-        # Try to load Hexa Climate logo from web URL
-        import requests
-        from io import BytesIO
-        
-        logo_url = "https://hexaclimate.com/wp-content/uploads/2023/11/Hexa-Logo-with-black-text-1.svg"
-        
-        try:
-            # Download the logo from the web
-            response = requests.get(logo_url, timeout=10)
-            response.raise_for_status()
-            
-            # Convert SVG to PNG using cairosvg if available
-            try:
-                import cairosvg
-                png_data = cairosvg.svg2png(bytestring=response.content, output_width=logo_size, output_height=logo_size)
-                logo_img = Image.open(BytesIO(png_data))
+                logo_img = Image.open(logo_path)
+                # Resize logo to fit
+                logo_img = logo_img.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
                 # Paste logo onto composite image
                 composite.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
-                print(f"✅ Hexa Climate logo loaded from: {logo_url}")
-            except ImportError:
-                # Fallback to text logo if cairosvg not available
-                print(f"⚠️  cairosvg not available, using fallback logo")
+                print(f"✅ Hexa Climate logo loaded from: {logo_path}")
+            except Exception as e:
+                print(f"⚠️  Error loading local logo: {e}")
+                # Fallback to text logo
                 logo_text = "HEXA"
                 logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
                 logo_width = logo_bbox[2] - logo_bbox[0]
                 draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
-                
-        except Exception as e:
-            print(f"⚠️  Error loading Hexa Climate logo: {e}")
+        else:
+            print(f"⚠️  Logo not found at: {logo_path}")
             # Fallback to text logo
             logo_text = "HEXA"
             logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
             logo_width = logo_bbox[2] - logo_bbox[0]
             draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
         
-        # Handle site name - always positioned to the right of the logo
+        # Handle site name with better positioning and alignment
         site_name = site.name
         site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
         site_width = site_bbox[2] - site_bbox[0]
+        site_height = site_bbox[3] - site_bbox[1]
         
-        # Calculate available space for site name (after logo + spacing)
-        logo_end = logo_x + logo_size + 15  # 15px spacing between logo and site name
-        available_width = total_width - logo_end - 20  # 20px right margin
+        # Calculate available space for site name
+        logo_end = logo_x + logo_size + 20  # Increased spacing
+        available_width = total_width - logo_end - 30
         
-        # If site name is too long, try different strategies
+        # Check if site name fits, if not, try smaller font
         if site_width > available_width:
-            # Strategy 1: Try with smaller font
             try:
-                small_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 18)
-                small_bbox = draw.textbbox((0, 0), site_name, font=small_font)
-                small_width = small_bbox[2] - small_bbox[0]
+                smaller_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 22)
+                site_bbox = draw.textbbox((0, 0), site_name, font=smaller_font)
+                site_width = site_bbox[2] - site_bbox[0]
+                site_height = site_bbox[3] - site_bbox[1]
                 
-                if small_width <= available_width:
-                    # Use smaller font
-                    header_font = small_font
-                    site_bbox = small_bbox
-                    site_width = small_width
-                    print(f"✅ Using smaller font for long site name: {site_name}")
-                else:
-                    # Strategy 2: Smart truncation - keep more of the name
-                    # Try to keep at least 70% of the name
-                    min_length = max(10, int(len(site_name) * 0.7))
-                    truncated_name = site_name[:min_length]
-                    
-                    # Add ellipsis and check if it fits
-                    while truncated_name and draw.textbbox((0, 0), truncated_name + "...", font=header_font)[2] > available_width:
-                        truncated_name = truncated_name[:-1]
-                    
-                    site_name = truncated_name + "..." if truncated_name else site_name[:15] + "..."
-                    site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
-                    site_width = site_bbox[2] - site_bbox[0]
-                    print(f"✅ Truncated long site name: {site_name}")
+                if site_width > available_width:
+                    # For extremely long names, adjust the total width to accommodate the full name
+                    required_width = logo_end + site_width + 30  # logo + spacing + site name + margin
+                    if required_width > total_width:
+                        # Recalculate total width to fit the full site name
+                        total_width = required_width
+                        # Recreate the composite image with new width
+                        composite = Image.new('RGB', (total_width, total_height), 'white')
+                        draw = ImageDraw.Draw(composite)
+                        
+                        # Reload logo with new positioning
+                        if os.path.exists(logo_path):
+                            try:
+                                logo_img = Image.open(logo_path)
+                                logo_img = logo_img.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+                                composite.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
+                            except Exception as e:
+                                print(f"⚠️  Error loading local logo: {e}")
+                                logo_text = "HEXA"
+                                logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
+                                draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
+                        else:
+                            logo_text = "HEXA"
+                            logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
+                            draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
+                        
+                        print(f"✅ Adjusted total width to {total_width}px to accommodate full site name")
+                
+                # Position site name to the right of logo with fixed vertical alignment
+                site_x = logo_end
+                site_y = margin_top + (header_height - site_height) // 2  # Center vertically
+                draw.text((site_x, site_y), site_name, fill='black', font=smaller_font)
             except:
-                # Fallback to original truncation
-                truncated_name = site_name
-                while truncated_name and draw.textbbox((0, 0), truncated_name + "...", font=header_font)[2] > available_width:
-                    truncated_name = truncated_name[:-1]
-                site_name = truncated_name + "..." if truncated_name else site_name[:10] + "..."
+                # Fallback to default font with width adjustment
                 site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
                 site_width = site_bbox[2] - site_bbox[0]
+                site_height = site_bbox[3] - site_bbox[1]
+                
+                # Adjust total width if needed
+                required_width = logo_end + site_width + 30
+                if required_width > total_width:
+                    total_width = required_width
+                    composite = Image.new('RGB', (total_width, total_height), 'white')
+                    draw = ImageDraw.Draw(composite)
+                    
+                    # Reload logo
+                    if os.path.exists(logo_path):
+                        try:
+                            logo_img = Image.open(logo_path)
+                            logo_img = logo_img.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
+                            composite.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
+                        except Exception as e:
+                            logo_text = "HEXA"
+                            logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
+                            draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
+                    else:
+                        logo_text = "HEXA"
+                        logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
+                        draw.text((logo_x, logo_y + 10), logo_text, fill='black', font=header_font)
+                
+                site_x = logo_end
+                site_y = margin_top + (header_height - site_height) // 2
+                draw.text((site_x, site_y), site_name, fill='black', font=header_font)
+        else:
+            # Position site name to the right of logo with fixed vertical alignment
+            site_x = logo_end
+            site_y = margin_top + (header_height - site_height) // 2  # Center vertically
+            draw.text((site_x, site_y), site_name, fill='black', font=header_font)
         
-        # Always position site name to the right of logo (logo is always on the left)
-        site_x = logo_end
-        site_y = (header_height - site_bbox[3]) // 2  # Center vertically in header area
-        draw.text((site_x, site_y), site_name, fill='black', font=header_font)
+        # Perfect centering calculations for QR code
+        # Horizontal centering - ensure QR is perfectly centered
+        qr_x = (total_width - qr_size) // 2
         
-        # Add QR code in the middle (centered horizontally)
-        qr_x = (total_width - qr_size) // 2  # Center horizontally
-        qr_y = header_height  # Below the header
-        qr_image_resized = qr_image.resize((qr_size, qr_size))
-        composite.paste(qr_image_resized, (qr_x, qr_y))
+        # Vertical centering - QR should be exactly in the middle of the available space
+        header_y = margin_top
+        header_bottom = header_y + header_height
         
-        # Center the description text at the bottom
+        # Calculate the middle point between header and description
         description = "Scan for Site info and Reporting Issues"
         desc_bbox = draw.textbbox((0, 0), description, font=desc_font)
+        desc_height = desc_bbox[3] - desc_bbox[1]
+        desc_y = total_height - margin_bottom - desc_height
+        
+        # Calculate the exact middle point between header bottom and description top
+        # Add more space between QR and description
+        available_height = desc_y - header_bottom
+        qr_y = header_bottom + (available_height - qr_size) // 2
+        
+        # Add QR code with perfect centering
+        composite.paste(qr_image, (qr_x, qr_y))
+        
+        # Center the description text at the bottom with more spacing
         desc_width = desc_bbox[2] - desc_bbox[0]
         desc_x = (total_width - desc_width) // 2
-        desc_y = header_height + qr_size + 10  # Reduced spacing to prevent cut-off
         draw.text((desc_x, desc_y), description, fill='black', font=desc_font)
         
         # Convert composite to base64
