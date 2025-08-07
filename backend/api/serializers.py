@@ -1,6 +1,13 @@
 from rest_framework import serializers
 from django.conf import settings
-from .models import Site, EmergencyContact, Incident, IncidentImage, NotificationEmail
+from .models import Site, EmergencyContact, Incident, IncidentImage, NotificationEmail, IncidentType
+
+
+class IncidentTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IncidentType
+        fields = ['id', 'site', 'name', 'display_name', 'description', 'requires_criticality', 'is_active', 'order', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class SiteSerializer(serializers.ModelSerializer):

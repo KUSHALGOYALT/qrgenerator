@@ -67,6 +67,27 @@ class IncidentImage(models.Model):
         ordering = ['-created_at']
 
 
+class IncidentType(models.Model):
+    """Model for site-specific incident types"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='incident_types')
+    name = models.CharField(max_length=100)
+    display_name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    requires_criticality = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.display_name} ({self.site.name})"
+
+    class Meta:
+        ordering = ['order', 'display_name']
+        unique_together = ['site', 'name']
+
+
 class Incident(models.Model):
     """Model for incident reports"""
     INCIDENT_TYPES = [

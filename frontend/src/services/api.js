@@ -108,6 +108,15 @@ export const notificationEmailsAPI = {
   delete: (id) => api.delete(`/notification-emails/${id}/`),
 }
 
+// Incident Types API
+export const incidentTypesAPI = {
+  getAll: (params) => api.get('/incident-types/', { params }),
+  getById: (id) => api.get(`/incident-types/${id}/`),
+  create: (data) => api.post('/incident-types/', data),
+  update: (id, data) => api.put(`/incident-types/${id}/`, data),
+  delete: (id) => api.delete(`/incident-types/${id}/`),
+}
+
 // Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/login/', credentials),

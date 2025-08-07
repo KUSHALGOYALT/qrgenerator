@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Site, EmergencyContact, Incident, IncidentImage, NotificationEmail
+from .models import Site, EmergencyContact, Incident, IncidentImage, NotificationEmail, IncidentType
 
 
 class IncidentImageInline(admin.TabularInline):
@@ -14,6 +14,15 @@ class SiteAdmin(admin.ModelAdmin):
     list_display = ['name', 'address', 'created_at']
     search_fields = ['name', 'address']
     readonly_fields = ['id', 'created_at', 'updated_at']
+
+
+@admin.register(IncidentType)
+class IncidentTypeAdmin(admin.ModelAdmin):
+    list_display = ['display_name', 'site', 'requires_criticality', 'is_active', 'order']
+    list_filter = ['site', 'requires_criticality', 'is_active', 'created_at']
+    search_fields = ['display_name', 'name', 'description']
+    readonly_fields = ['id', 'created_at', 'updated_at']
+    ordering = ['site', 'order', 'display_name']
 
 
 @admin.register(NotificationEmail)

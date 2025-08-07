@@ -12,11 +12,11 @@ import qrcode
 import io
 import base64
 
-from .models import Site, EmergencyContact, Incident, IncidentImage, NotificationEmail
+from .models import Site, EmergencyContact, Incident, IncidentImage, NotificationEmail, IncidentType
 from .serializers import (
     SiteSerializer, SiteDetailSerializer,
     EmergencyContactSerializer,
-    IncidentSerializer, NotificationEmailSerializer
+    IncidentSerializer, NotificationEmailSerializer, IncidentTypeSerializer
 )
 from .utils import send_incident_notification
 
@@ -365,6 +365,22 @@ class NotificationEmailViewSet(viewsets.ModelViewSet):
     queryset = NotificationEmail.objects.all()
     serializer_class = NotificationEmailSerializer
     permission_classes = [IsAuthenticated]
+
+
+class IncidentTypeViewSet(viewsets.ModelViewSet):
+    queryset = IncidentType.objects.all()
+    serializer_class = IncidentTypeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = IncidentType.objects.all().order_by('order', 'display_name')
+        
+        # Filter by site if provided
+        site_id = self.request.query_params.get('site', None)
+        if site_id:
+            queryset = queryset.filter(site_id=site_id)
+        
+        return queryset
 
 
 @method_decorator(csrf_exempt, name='dispatch')

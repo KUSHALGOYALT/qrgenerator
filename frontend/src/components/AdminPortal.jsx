@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Eye, QrCode, Building2, Mail } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, QrCode, Building2, Mail, AlertTriangle } from 'lucide-react'
 import { sitesAPI } from '../services/api'
 import SiteModal from './SiteModal'
 import QRCodeModal from './QRCodeModal'
 import NotificationEmailsManagement from './NotificationEmailsManagement'
+import IncidentTypesManagement from './IncidentTypesManagement'
 
 const AdminPortal = () => {
   const [sites, setSites] = useState([])
@@ -72,6 +73,7 @@ const AdminPortal = () => {
 
   const tabs = [
     { id: 'sites', name: 'Site Management', icon: Building2 },
+    { id: 'incident-types', name: 'Incident Types', icon: AlertTriangle },
     { id: 'emails', name: 'Notification Emails', icon: Mail },
   ]
 
@@ -189,6 +191,10 @@ const AdminPortal = () => {
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'incident-types' && (
+        <IncidentTypesManagement />
       )}
 
       {activeTab === 'emails' && (
