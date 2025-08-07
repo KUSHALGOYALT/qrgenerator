@@ -36,8 +36,7 @@ const IncidentTypesManagement = () => {
       const typesData = typesRes.data.results || typesRes.data
       const sitesData = sitesRes.data.results || sitesRes.data
       
-      console.log('Fetched incident types:', typesData)
-      console.log('Fetched sites:', sitesData)
+
       
       setIncidentTypes(typesData)
       setSites(sitesData)
@@ -166,9 +165,7 @@ const IncidentTypesManagement = () => {
   // Uncomment the next line if you want to hide disabled types
   // filteredTypes = filteredTypes.filter(type => type.is_active)
 
-  console.log('Selected site:', selectedSite)
-  console.log('Total incident types:', incidentTypes.length)
-  console.log('Filtered incident types:', filteredTypes.length)
+
 
   if (loading) {
     return (
