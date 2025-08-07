@@ -252,9 +252,9 @@ class SiteViewSet(viewsets.ModelViewSet):
         # Layout: Logo + site name at top, QR code in middle, description at bottom
         qr_size = 300  # Larger QR code for better scanning
         header_height = 80  # Height for logo + site name
-        description_height = 60
+        description_height = 80  # Increased height for description
         total_height = header_height + qr_size + description_height
-        total_width = qr_size + 40  # Width to accommodate QR code + margins
+        total_width = qr_size + 80  # Increased width to accommodate longer site names
         
         # Create the composite image
         composite = Image.new('RGB', (total_width, total_height), 'white')
@@ -288,17 +288,16 @@ class SiteViewSet(viewsets.ModelViewSet):
             response = requests.get(logo_url, timeout=10)
             response.raise_for_status()
             
-            # Convert SVG to PNG using cairosvg if available, otherwise use a fallback
+            # Convert SVG to PNG using cairosvg if available
             try:
                 import cairosvg
-                # Convert SVG to PNG
                 png_data = cairosvg.svg2png(bytestring=response.content, output_width=logo_size, output_height=logo_size)
                 logo_img = Image.open(BytesIO(png_data))
                 # Paste logo onto composite image
                 composite.paste(logo_img, (logo_x, logo_y), logo_img if logo_img.mode == 'RGBA' else None)
                 print(f"✅ Hexa Climate logo loaded from: {logo_url}")
             except ImportError:
-                # Fallback: try to use the SVG directly or create a text logo
+                # Fallback to text logo if cairosvg not available
                 print(f"⚠️  cairosvg not available, using fallback logo")
                 logo_text = "HEXA"
                 logo_bbox = draw.textbbox((0, 0), logo_text, font=header_font)
@@ -322,15 +321,42 @@ class SiteViewSet(viewsets.ModelViewSet):
         logo_end = logo_x + logo_size + 15  # 15px spacing between logo and site name
         available_width = total_width - logo_end - 20  # 20px right margin
         
-        # If site name is too long, truncate it with ellipsis
+        # If site name is too long, try different strategies
         if site_width > available_width:
-            # Try to fit as much as possible
-            truncated_name = site_name
-            while truncated_name and draw.textbbox((0, 0), truncated_name + "...", font=header_font)[2] > available_width:
-                truncated_name = truncated_name[:-1]
-            site_name = truncated_name + "..." if truncated_name else site_name[:10] + "..."
-            site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
-            site_width = site_bbox[2] - site_bbox[0]
+            # Strategy 1: Try with smaller font
+            try:
+                small_font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 18)
+                small_bbox = draw.textbbox((0, 0), site_name, font=small_font)
+                small_width = small_bbox[2] - small_bbox[0]
+                
+                if small_width <= available_width:
+                    # Use smaller font
+                    header_font = small_font
+                    site_bbox = small_bbox
+                    site_width = small_width
+                    print(f"✅ Using smaller font for long site name: {site_name}")
+                else:
+                    # Strategy 2: Smart truncation - keep more of the name
+                    # Try to keep at least 70% of the name
+                    min_length = max(10, int(len(site_name) * 0.7))
+                    truncated_name = site_name[:min_length]
+                    
+                    # Add ellipsis and check if it fits
+                    while truncated_name and draw.textbbox((0, 0), truncated_name + "...", font=header_font)[2] > available_width:
+                        truncated_name = truncated_name[:-1]
+                    
+                    site_name = truncated_name + "..." if truncated_name else site_name[:15] + "..."
+                    site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
+                    site_width = site_bbox[2] - site_bbox[0]
+                    print(f"✅ Truncated long site name: {site_name}")
+            except:
+                # Fallback to original truncation
+                truncated_name = site_name
+                while truncated_name and draw.textbbox((0, 0), truncated_name + "...", font=header_font)[2] > available_width:
+                    truncated_name = truncated_name[:-1]
+                site_name = truncated_name + "..." if truncated_name else site_name[:10] + "..."
+                site_bbox = draw.textbbox((0, 0), site_name, font=header_font)
+                site_width = site_bbox[2] - site_bbox[0]
         
         # Always position site name to the right of logo (logo is always on the left)
         site_x = logo_end
@@ -348,7 +374,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         desc_bbox = draw.textbbox((0, 0), description, font=desc_font)
         desc_width = desc_bbox[2] - desc_bbox[0]
         desc_x = (total_width - desc_width) // 2
-        desc_y = header_height + qr_size + 15  # Below the QR code
+        desc_y = header_height + qr_size + 10  # Reduced spacing to prevent cut-off
         draw.text((desc_x, desc_y), description, fill='black', font=desc_font)
         
         # Convert composite to base64

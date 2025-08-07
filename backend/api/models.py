@@ -5,7 +5,7 @@ import uuid
 
 class Site(models.Model):
     """Model for sites/locations"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=True)
     name = models.CharField(max_length=200)
     address = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -20,7 +20,7 @@ class Site(models.Model):
 
 class NotificationEmail(models.Model):
     """Simple model for notification emails"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=True)
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -33,7 +33,7 @@ class NotificationEmail(models.Model):
 
 class EmergencyContact(models.Model):
     """Model for emergency contacts per site"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=True)
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='emergency_contacts')
     name = models.CharField(max_length=100)
     designation = models.CharField(max_length=100)
@@ -54,7 +54,7 @@ class EmergencyContact(models.Model):
 
 class IncidentImage(models.Model):
     """Model for incident images"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=True)
     incident = models.ForeignKey('Incident', on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='incident_images/')
     caption = models.CharField(max_length=200, blank=True, null=True)
@@ -69,7 +69,7 @@ class IncidentImage(models.Model):
 
 class IncidentType(models.Model):
     """Model for site-specific incident types"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=True)
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='incident_types')
     name = models.CharField(max_length=100)
     display_name = models.CharField(max_length=100)
@@ -106,7 +106,7 @@ class Incident(models.Model):
         ('closed', 'Closed'),
     ]
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=True)
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='incidents')
     incident_type = models.ForeignKey(IncidentType, on_delete=models.CASCADE, related_name='incidents')
     criticality = models.CharField(max_length=10, choices=CRITICALITY_LEVELS, blank=True, null=True)
