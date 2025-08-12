@@ -8,9 +8,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.conf import settings
 import qrcode
 import io
 import base64
+import os
+from PIL import Image, ImageDraw, ImageFont
 
 from .models import Site, EmergencyContact, Incident, IncidentImage, NotificationEmail, IncidentType
 from .serializers import (
